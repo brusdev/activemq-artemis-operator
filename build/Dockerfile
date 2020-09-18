@@ -11,6 +11,9 @@ RUN mkdir -p /tmp/activemq-artemis-operator
 ADD . ${GOPATH}/src/github.com/artemiscloud/activemq-artemis-operator
 WORKDIR ${GOPATH}/src/github.com/artemiscloud/activemq-artemis-operator
 
+RUN mkdir -p /tmp/go/pkg/mod/cache/download/bitbucket.org/ww/goautoneg/@v
+ADD ./build/goautoneg /tmp/go/pkg/mod/cache/download/bitbucket.org/ww/goautoneg
+
 RUN /opt/rh/go-toolset-1.13/root/usr/bin/go build -o /tmp/activemq-artemis-operator/${BROKER_NAME}-operator /tmp/go/src/github.com/artemiscloud/activemq-artemis-operator/cmd/manager
 
 
