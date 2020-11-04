@@ -21,6 +21,8 @@ spec:
         memory: 512m
     storage:
       size: "4Gi"
+    jolokiaAgentEnabled: false
+    managementRBACEnabled: true
   console:
     expose: true
   acceptors:

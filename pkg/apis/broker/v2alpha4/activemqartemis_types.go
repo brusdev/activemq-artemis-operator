@@ -99,15 +99,17 @@ type AddressSettingType struct {
 }
 
 type DeploymentPlanType struct {
-	Image              string                      `json:"image,omitempty"`
-	InitImage          string                      `json:"initImage,omitempty"`
-	Size               int32                       `json:"size,omitempty"`
-	RequireLogin       bool                        `json:"requireLogin,omitempty"`
-	PersistenceEnabled bool                        `json:"persistenceEnabled,omitempty"`
-	JournalType        string                      `json:"journalType,omitempty"`
-	MessageMigration   *bool                       `json:"messageMigration,omitempty"`
-	Resources          corev1.ResourceRequirements `json:"resources,omitempty"`
-	Storage            StorageType                 `json:"storage,omitempty"`
+	Image                 string                      `json:"image,omitempty"`
+	InitImage             string                      `json:"initImage,omitempty"`
+	Size                  int32                       `json:"size,omitempty"`
+	RequireLogin          bool                        `json:"requireLogin,omitempty"`
+	PersistenceEnabled    bool                        `json:"persistenceEnabled,omitempty"`
+	JournalType           string                      `json:"journalType,omitempty"`
+	MessageMigration      *bool                       `json:"messageMigration,omitempty"`
+	Resources             corev1.ResourceRequirements `json:"resources,omitempty"`
+	Storage               StorageType                 `json:"storage,omitempty"`
+	JolokiaAgentEnabled   bool                        `json:"jolokiaAgentEnabled,omitempty"`
+	ManagementRBACEnabled bool                        `json:"managementRBACEnabled,omitempty"`
 }
 
 type StorageType struct {

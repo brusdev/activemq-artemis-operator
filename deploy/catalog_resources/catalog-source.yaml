@@ -38,7 +38,9 @@ items:
                           "requireLogin": false,
                           "persistenceEnabled": false,
                           "journalType": "nio",
-                          "messageMigration": false
+                          "messageMigration": false,
+                          "jolokiaAgentEnabled": false,
+                          "managementRBACEnabled": true
                        }
                     }
                 },
@@ -178,6 +180,18 @@ items:
                     - description: If true migrate messages on scaledown
                       displayName: MessageMigration
                       path: deploymentPlan.messageMigration
+                      x-descriptors:
+                        - 'urn:alm:descriptor:com.tectonic.ui:fieldGroup:deploymentPlan'
+                        - 'urn:alm:descriptor:com.tectonic.ui:booleanSwitch'
+                    - description: If true enable the Jolokia JVM Agent
+                      displayName: JolokiaAgentEnabled
+                      path: deploymentPlan.jolokiaAgentEnabled
+                      x-descriptors:
+                        - 'urn:alm:descriptor:com.tectonic.ui:fieldGroup:deploymentPlan'
+                        - 'urn:alm:descriptor:com.tectonic.ui:booleanSwitch'
+                    - description: If true enable the management role based acces control
+                      displayName: ManagementRBACEnabled
+                      path: deploymentPlan.managementRBACEnabled
                       x-descriptors:
                         - 'urn:alm:descriptor:com.tectonic.ui:fieldGroup:deploymentPlan'
                         - 'urn:alm:descriptor:com.tectonic.ui:booleanSwitch'
@@ -587,6 +601,12 @@ items:
                           messageMigration:
                             type: boolean
                             description: If true migrate messages on scaledown
+                          jolokiaAgentEnabled:
+                            type: boolean
+                            description: If true enable the Jolokia JVM Agent
+                          managementRBACEnabled:
+                            type: boolean
+                            description: If true enable the management role based access control
                       acceptors:
                         type: array
                         description: Configuration of all acceptors

@@ -1332,12 +1332,18 @@ spec:
                 deploymentPlan:
                   type: object
                   properties:
+                    jolokiaAgentEnabled:
+                      description: If true enable the Jolokia JVM Agent
+                      type: boolean
                     image:
                       description: The image used for the broker deployment
                       type: string
                     journalType:
                       description: 'If aio use ASYNCIO, if nio use NIO for journal IO'
                       type: string
+                    managementRBACEnabled:
+                      description: If true enable the management role based access control
+                      type: boolean
                     messageMigration:
                       description: If true migrate messages on scaledown
                       type: boolean

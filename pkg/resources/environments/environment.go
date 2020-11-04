@@ -96,7 +96,7 @@ func DetectOpenshift() (bool, error) {
 	return err == nil, nil
 }
 
-func AddEnvVarForBasic(requireLogin string, journalType string) []corev1.EnvVar {
+func AddEnvVarForBasic(requireLogin string, journalType string, jolokiaAgentEnabled string, managementRBACEnabled string) []corev1.EnvVar {
 
 	envVarArray := []corev1.EnvVar{
 		{
@@ -157,6 +157,16 @@ func AddEnvVarForBasic(requireLogin string, journalType string) []corev1.EnvVar 
 		{
 			"AMQ_JOURNAL_TYPE",
 			journalType, //GetPropertyForCR("AMQ_JOURNAL_TYPE", cr, "nio"),
+			nil,
+		},
+		{
+			"AMQ_ENABLE_JOLOKIA_AGENT",
+			jolokiaAgentEnabled,
+			nil,
+		},
+		{
+			"AMQ_ENABLE_MANAGEMENT_RBAC",
+			managementRBACEnabled,
 			nil,
 		},
 		{
