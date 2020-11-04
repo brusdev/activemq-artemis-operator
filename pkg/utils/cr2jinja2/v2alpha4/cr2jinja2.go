@@ -1,7 +1,7 @@
-package cr2jinja2
+package v2alpha4
 
 import (
-	brokerv2alpha3 "github.com/artemiscloud/activemq-artemis-operator/pkg/apis/broker/v2alpha3"
+	brokerv2alpha4 "github.com/artemiscloud/activemq-artemis-operator/pkg/apis/broker/v2alpha4"
 	//k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 	"fmt"
 	"io/ioutil"
@@ -41,9 +41,9 @@ func checkInt64(prop *int64) *string {
 }
 
 /* return a yaml string */
-func MakeBrokerCfgOverrides(customeResource *brokerv2alpha3.ActiveMQArtemis, envVar *string, output *string) string {
+func MakeBrokerCfgOverrides(customeResource *brokerv2alpha4.ActiveMQArtemis, envVar *string, output *string) string {
 
-	var addressSettings *[]brokerv2alpha3.AddressSettingType = &customeResource.Spec.AddressSettings.AddressSetting
+	var addressSettings *[]brokerv2alpha4.AddressSettingType = &customeResource.Spec.AddressSettings.AddressSetting
 	var sb strings.Builder
 
 	processAddressSettings(&sb, addressSettings)
@@ -65,7 +65,7 @@ func MakeBrokerCfgOverrides(customeResource *brokerv2alpha3.ActiveMQArtemis, env
 
 }
 
-func processAddressSettings(sb *strings.Builder, addressSettings *[]brokerv2alpha3.AddressSettingType) {
+func processAddressSettings(sb *strings.Builder, addressSettings *[]brokerv2alpha4.AddressSettingType) {
 
 	if addressSettings == nil || len(*addressSettings) == 0 {
 		return

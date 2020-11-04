@@ -495,8 +495,8 @@ spec:
                     image:
                       description: The image used for the broker deployment
                       type: string
-                    initImage:
-                      description: The init container image used to configure broker
+                    initImage: The init container image used to configure broker addresssettings
+                      description:
                       type: string
                     journalType:
                       description: 'If aio use ASYNCIO, if nio use NIO for journal IO'

@@ -18,12 +18,8 @@ package fake
 
 import (
 	clientset "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned"
-	brokerv2alpha1 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v2alpha1"
-	fakebrokerv2alpha1 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v2alpha1/fake"
-	brokerv2alpha2 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v2alpha2"
-	fakebrokerv2alpha2 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v2alpha2/fake"
-	brokerv2alpha3 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v2alpha3"
-	fakebrokerv2alpha3 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v2alpha3/fake"
+	brokerv2alpha4 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v2alpha4"
+	fakebrokerv2alpha4 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v2alpha4/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -72,22 +68,12 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// BrokerV2alpha1 retrieves the BrokerV2alpha1Client
-func (c *Clientset) BrokerV2alpha1() brokerv2alpha1.BrokerV2alpha1Interface {
-	return &fakebrokerv2alpha1.FakeBrokerV2alpha1{Fake: &c.Fake}
+// BrokerV2alpha4 retrieves the BrokerV2alpha4Client
+func (c *Clientset) BrokerV2alpha4() brokerv2alpha4.BrokerV2alpha4Interface {
+	return &fakebrokerv2alpha4.FakeBrokerV2alpha4{Fake: &c.Fake}
 }
 
-// BrokerV2alpha2 retrieves the BrokerV2alpha2Client
-func (c *Clientset) BrokerV2alpha2() brokerv2alpha2.BrokerV2alpha2Interface {
-	return &fakebrokerv2alpha2.FakeBrokerV2alpha2{Fake: &c.Fake}
-}
-
-// BrokerV2alpha3 retrieves the BrokerV2alpha3Client
-func (c *Clientset) BrokerV2alpha3() brokerv2alpha3.BrokerV2alpha3Interface {
-	return &fakebrokerv2alpha3.FakeBrokerV2alpha3{Fake: &c.Fake}
-}
-
-// Broker retrieves the BrokerV2alpha3Client
-func (c *Clientset) Broker() brokerv2alpha3.BrokerV2alpha3Interface {
-	return &fakebrokerv2alpha3.FakeBrokerV2alpha3{Fake: &c.Fake}
+// Broker retrieves the BrokerV2alpha4Client
+func (c *Clientset) Broker() brokerv2alpha4.BrokerV2alpha4Interface {
+	return &fakebrokerv2alpha4.FakeBrokerV2alpha4{Fake: &c.Fake}
 }

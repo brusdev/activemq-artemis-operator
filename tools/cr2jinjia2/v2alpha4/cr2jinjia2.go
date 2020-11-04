@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/apis/broker/v2alpha3"
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/cr2jinja2"
+	"github.com/artemiscloud/activemq-artemis-operator/pkg/apis/broker/v2alpha4"
+	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/cr2jinja2/v2alpha4"
 	"io/ioutil"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 	//"k8s.io/apimachinery/pkg/runtime/serializer/json"
