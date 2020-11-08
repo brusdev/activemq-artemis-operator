@@ -1596,7 +1596,7 @@ func MakeEnvVarArrayForCR(cr *brokerv2alpha4.ActiveMQArtemis) []corev1.EnvVar {
 	}
 
 	envVar := []corev1.EnvVar{}
-	envVarArrayForBasic := environments.AddEnvVarForBasic(requireLogin, journalType, jolokiaAgentEnabled, managementRBACEnabled)
+	envVarArrayForBasic := environments.AddEnvVarForBasic(requireLogin, journalType)
 	envVar = append(envVar, envVarArrayForBasic...)
 	if cr.Spec.DeploymentPlan.PersistenceEnabled {
 		envVarArrayForPresistent := environments.AddEnvVarForPersistent(cr.Name)
@@ -1606,6 +1606,12 @@ func MakeEnvVarArrayForCR(cr *brokerv2alpha4.ActiveMQArtemis) []corev1.EnvVar {
 	// TODO: Optimize for the single broker configuration
 	envVarArrayForCluster := environments.AddEnvVarForCluster()
 	envVar = append(envVar, envVarArrayForCluster...)
+
+	envVarArrayForJolokia := environments.AddEnvVarForJolokia(jolokiaAgentEnabled)
+	envVar = append(envVar, envVarArrayForJolokia...)
+
+	envVarArrayForManagement := environments.AddEnvVarForManagement(managementRBACEnabled)
+	envVar = append(envVar, envVarArrayForManagement...)
 
 	return envVar
 }
