@@ -25,7 +25,7 @@ require (
 	github.com/go-openapi/strfmt v0.19.0 // indirect
 	github.com/go-openapi/swag v0.19.0 // indirect
 	github.com/go-openapi/validate v0.19.0 // indirect
-	github.com/gogo/protobuf v1.2.1 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
 	github.com/google/btree v1.0.0 // indirect
@@ -44,17 +44,14 @@ require (
 	github.com/openshift/api v3.9.0+incompatible
 	github.com/operator-framework/operator-lifecycle-manager v0.0.0-20190128024246-5eb7ae5bdb7a
 	github.com/operator-framework/operator-sdk v0.8.2
-	github.com/otiai10/copy v1.2.0 // indirect
 	github.com/prometheus/client_golang v0.9.3 // indirect
 	github.com/prometheus/procfs v0.0.0-20190519111021-9935e8e0588d // indirect
 	github.com/sirupsen/logrus v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.3
-	github.com/stretchr/testify v1.4.0
 	github.com/tidwall/sjson v1.1.1
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/zap v1.10.0 // indirect
-	golang.org/x/crypto v0.0.0-20190513172903-22d7a77e9e5f // indirect
-	golang.org/x/net v0.0.0-20200520004742-59133d7f0dd7
+	golang.org/x/net v0.0.0-20201021035429-f5854403a974
 	golang.org/x/oauth2 v0.0.0-20190517181255-950ef44c6e07 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	google.golang.org/appengine v1.6.0 // indirect
