@@ -12,14 +12,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-broker-amq-io-v1beta1-activemqartemis
+      path: /mutate-broker-amq-io-v1beta2-activemqartemis
   failurePolicy: Fail
   name: mactivemqartemis.kb.io
   rules:
   - apiGroups:
     - broker.amq.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -80,14 +80,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-broker-amq-io-v1beta1-activemqartemis
+      path: /validate-broker-amq-io-v1beta2-activemqartemis
   failurePolicy: Fail
   name: vactivemqartemis.kb.io
   rules:
   - apiGroups:
     - broker.amq.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE

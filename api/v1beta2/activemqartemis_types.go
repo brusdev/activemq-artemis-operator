@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1beta2
 
 import (
 	"github.com/RHsyseng/operator-utils/pkg/olm"
@@ -369,6 +369,7 @@ type ActiveMQArtemisStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:storageversion
 //+kubebuilder:resource:path=activemqartemises
 
 // ActiveMQArtemis is the Schema for the activemqartemises API

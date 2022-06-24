@@ -21,6 +21,7 @@ import (
 
 	brokerv1alpha1 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v1alpha1"
 	brokerv1beta1 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v1beta1"
+	brokerv1beta2 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v1beta2"
 	brokerv2alpha1 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v2alpha1"
 	brokerv2alpha2 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v2alpha2"
 	brokerv2alpha3 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v2alpha3"
@@ -39,8 +40,9 @@ type Interface interface {
 	BrokerV2alpha4() brokerv2alpha4.BrokerV2alpha4Interface
 	BrokerV2alpha5() brokerv2alpha5.BrokerV2alpha5Interface
 	BrokerV1beta1() brokerv1beta1.BrokerV1beta1Interface
+	BrokerV1beta2() brokerv1beta2.BrokerV1beta2Interface
 	// Deprecated: please explicitly pick a version if possible.
-	Broker() brokerv1beta1.BrokerV1beta1Interface
+	Broker() brokerv1beta2.BrokerV1beta2Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -54,6 +56,7 @@ type Clientset struct {
 	brokerV2alpha4 *brokerv2alpha4.BrokerV2alpha4Client
 	brokerV2alpha5 *brokerv2alpha5.BrokerV2alpha5Client
 	brokerV1beta1  *brokerv1beta1.BrokerV1beta1Client
+	brokerV1beta2  *brokerv1beta2.BrokerV1beta2Client
 }
 
 // BrokerV1alpha1 retrieves the BrokerV1alpha1Client
@@ -91,10 +94,15 @@ func (c *Clientset) BrokerV1beta1() brokerv1beta1.BrokerV1beta1Interface {
 	return c.brokerV1beta1
 }
 
+// BrokerV1beta2retrieves the BrokerV1beta2Client
+func (c *Clientset) BrokerV1beta2() brokerv1beta2.BrokerV1beta2Interface {
+	return c.brokerV1beta2
+}
+
 // Deprecated: Broker retrieves the default version of BrokerClient.
 // Please explicitly pick a version.
-func (c *Clientset) Broker() brokerv1beta1.BrokerV1beta1Interface {
-	return c.brokerV1beta1
+func (c *Clientset) Broker() brokerv1beta2.BrokerV1beta2Interface {
+	return c.brokerV1beta2
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -142,6 +150,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
+	cs.brokerV1beta2, err = brokerv1beta2.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 
 	cs.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(&configShallowCopy)
 	if err != nil {
@@ -162,6 +174,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 	cs.brokerV2alpha4 = brokerv2alpha4.NewForConfigOrDie(c)
 	cs.brokerV2alpha5 = brokerv2alpha5.NewForConfigOrDie(c)
 	cs.brokerV1beta1 = brokerv1beta1.NewForConfigOrDie(c)
+	cs.brokerV1beta2 = brokerv1beta2.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -177,6 +190,7 @@ func New(c rest.Interface) *Clientset {
 	cs.brokerV2alpha4 = brokerv2alpha4.New(c)
 	cs.brokerV2alpha5 = brokerv2alpha5.New(c)
 	cs.brokerV1beta1 = brokerv1beta1.New(c)
+	cs.brokerV1beta2 = brokerv1beta2.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

@@ -1,4 +1,4 @@
-apiVersion: broker.amq.io/v1beta1
+apiVersion: broker.amq.io/v1beta2
 kind: ActiveMQArtemis
 metadata:
   name: ex-aao

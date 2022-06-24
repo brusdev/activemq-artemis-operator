@@ -20,6 +20,8 @@ import (
 	clientset "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned"
 	brokerv1beta1 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v1beta1"
 	fakebrokerv1beta1 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v1beta1/fake"
+	brokerv1beta2 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v1beta2"
+	fakebrokerv1beta2 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v1beta2/fake"
 	brokerv2alpha1 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v2alpha1"
 	fakebrokerv2alpha1 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v2alpha1/fake"
 	brokerv2alpha2 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v2alpha2"
@@ -112,7 +114,12 @@ func (c *Clientset) BrokerV1beta1() brokerv1beta1.BrokerV1beta1Interface {
 	return &fakebrokerv1beta1.FakeBrokerV1beta1{Fake: &c.Fake}
 }
 
+// BrokerV1beta2 retrieves the BrokerV1beta2Client
+func (c *Clientset) BrokerV1beta2() brokerv1beta2.BrokerV1beta2Interface {
+	return &fakebrokerv1beta2.FakeBrokerV1beta2{Fake: &c.Fake}
+}
+
 // Broker retrieves the BrokerV1Beta1Client
-func (c *Clientset) Broker() brokerv1beta1.BrokerV1beta1Interface {
-	return &fakebrokerv1beta1.FakeBrokerV1beta1{Fake: &c.Fake}
+func (c *Clientset) Broker() brokerv1beta2.BrokerV1beta2Interface {
+	return &fakebrokerv1beta2.FakeBrokerV1beta2{Fake: &c.Fake}
 }

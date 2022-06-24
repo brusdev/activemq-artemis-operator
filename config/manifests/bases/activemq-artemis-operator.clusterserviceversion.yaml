@@ -38,6 +38,11 @@ spec:
       displayName: Active MQArtemis
       kind: ActiveMQArtemis
       name: activemqartemises.broker.amq.io
+      version: v1beta2
+    - description: ActiveMQArtemis is the Schema for the activemqartemises API
+      displayName: Active MQArtemis
+      kind: ActiveMQArtemis
+      name: activemqartemises.broker.amq.io
       version: v1beta1
     - description: ActiveMQArtemis is the Schema for the activemqartemises API
       displayName: Active MQArtemis
