@@ -70,3 +70,68 @@ by run the following command from the project root.
 ```
 make generate-deploy
 ```
+<<<<<<< HEAD
+=======
+
+# How to use the yamls in this dir to deploy an operator
+
+## To deploy an operator watching single namespace (operator's namespace)
+
+Assuming the target namespace is current namespace (if not use kubectl's -n option to specify the target namespace)
+
+1. Deploy all the crds
+```
+kubectl create -f ./crds
+```
+
+2. Deploy operator
+
+You need to deploy all the yamls from this dir except *cluster_role.yaml* and *cluster_role_binding.yaml*:
+```
+kubectl create -f ./service_account.yaml
+kubectl create -f ./role.yaml
+kubectl create -f ./role_binding.yaml
+kubectl create -f ./election_role.yaml
+kubectl create -f ./election_role_binding.yaml
+kubectl create -f ./operator_config.yaml
+kubectl create -f ./operator.yaml
+```
+
+## To deploy an operator watching all namespace
+
+The steps are similar to those for single namespace operators except that you replace the *role.yaml* and *role_binding.yaml* with *cluster_role.yaml* and *cluster_role_binding.yaml* respectively.
+
+**Note**
+Before deploy, you should edit operator.yaml and change the **WATCH_NAMESPACE** env var value to be empty string
+and also change the subjects namespace to match your target namespace in cluster_role_binding.yaml
+as illustrated in following
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: activemq-artemis-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: activemq-artemis-activemq-artemis-operator
+subjects:
+- kind: ServiceAccount
+  name: activemq-artemis-controller-manager
+  namespace: <<This must match your operator's target namespace>>
+```
+
+After making the above changes deploy the operator as follows
+(Assuming the target namespace is current namespace. You can use kubectl's -n option to specify otherwise)
+
+```
+kubectl create -f ./crds
+kubectl create -f ./service_account.yaml
+kubectl create -f ./cluster_role.yaml
+kubectl create -f ./cluster_role_binding.yaml
+kubectl create -f ./election_role.yaml
+kubectl create -f ./election_role_binding.yaml
+kubectl create -f ./operator_config.yaml
+kubectl create -f ./operator.yaml
+```
+>>>>>>> c1899bb9 (Fix relative path on kubectl create)
