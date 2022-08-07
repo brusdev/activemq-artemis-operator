@@ -127,6 +127,8 @@ After making the above changes deploy the operator as follows
 ```
 kubectl create -f ./crds
 kubectl create -f ./service_account.yaml
+kubectl create -f ./role_binding.yaml
+kubectl create -f ./role.yaml
 kubectl create -f ./cluster_role.yaml
 kubectl create -f ./cluster_role_binding.yaml
 kubectl create -f ./election_role.yaml
