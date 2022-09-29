@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/common"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -82,14 +83,14 @@ func Retrieve(namespacedName types.NamespacedName, client client.Client, objectD
 	return client.Get(context.TODO(), namespacedName, objectDefinition)
 }
 
-func Update(client client.Client, clientObject client.Object) error {
+func Update(k8sClient client.Client, clientObject client.Object) error {
 
 	reqLogger := log.WithValues("ActiveMQArtemis Name", clientObject.GetName(), "Namespace", clientObject.GetNamespace())
 	objectTypeString := reflect.TypeOf(clientObject.(runtime.Object)).String()
 	reqLogger.V(1).Info("Updating "+objectTypeString, "obj", clientObject)
 
 	var err error = nil
-	if err = client.Update(context.TODO(), clientObject); err != nil {
+	if err = k8sClient.Update(context.TODO(), clientObject); err != nil {
 		switch checkForForbidden := err.(type) {
 		case *errors.StatusError:
 			if checkForForbidden.ErrStatus.Status == v1.StatusFailure &&
@@ -98,7 +99,13 @@ func Update(client client.Client, clientObject client.Object) error {
 
 				// "StatefulSet.apps is invalid: spec: Forbidden: updates to statefulset spec for fields other than 'replicas', 'template', 'updateStrategy' and 'minReadySeconds' are forbidden"}
 				reqLogger.V(1).Info("Deleting on failed updating "+objectTypeString, "obj", clientObject, "Forbidden", err)
-				err = Delete(client, clientObject)
+
+				if reflect.ValueOf(clientObject).Elem().Type() == reflect.TypeOf(appsv1.StatefulSet{}) {
+					err = Delete(k8sClient, clientObject, client.PropagationPolicy(v1.DeletePropagationOrphan))
+				} else {
+					err = Delete(k8sClient, clientObject)
+				}
+
 				break
 			}
 		default:
@@ -121,14 +128,14 @@ func UpdateStatus(client client.Client, clientObject client.Object) error {
 	return err
 }
 
-func Delete(client client.Client, clientObject client.Object) error {
+func Delete(client client.Client, clientObject client.Object, opts ...client.DeleteOption) error {
 
 	reqLogger := log.WithValues("ActiveMQArtemis Name", clientObject.GetName(), "Namespace", clientObject.GetNamespace())
 	objectTypeString := reflect.TypeOf(clientObject.(runtime.Object)).String()
 	reqLogger.Info("Deleting " + objectTypeString)
 
 	var err error = nil
-	if err = client.Delete(context.TODO(), clientObject); err != nil {
+	if err = client.Delete(context.TODO(), clientObject, opts...); err != nil {
 		reqLogger.Error(err, "Failed to delete "+objectTypeString)
 	}
 

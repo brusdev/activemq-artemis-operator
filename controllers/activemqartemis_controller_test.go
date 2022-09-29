@@ -2822,6 +2822,16 @@ var _ = Describe("artemis controller", func() {
 			ctx := context.Background()
 			crd := generateArtemisSpec(defaultNamespace)
 
+			crd.Spec.DeploymentPlan.LivenessProbe = &corev1.Probe{
+				InitialDelaySeconds: 2,
+				PeriodSeconds:       5,
+			}
+			crd.Spec.DeploymentPlan.ReadinessProbe = &corev1.Probe{
+				InitialDelaySeconds: 2,
+				PeriodSeconds:       5,
+			}
+			crd.Spec.DeploymentPlan.Size = 2
+
 			crd.Spec.DeploymentPlan.PersistenceEnabled = false
 
 			Expect(k8sClient.Create(ctx, &crd)).Should(Succeed())
@@ -2829,16 +2839,28 @@ var _ = Describe("artemis controller", func() {
 			By("By eventualy finding a matching config map with broker props")
 			createdSs := &appsv1.StatefulSet{}
 
+			key := types.NamespacedName{Name: namer.CrToSS(crd.Name), Namespace: defaultNamespace}
+
 			By("Making sure that the ss gets deployed " + crd.ObjectMeta.Name)
-			Eventually(func() bool {
-				key := types.NamespacedName{Name: namer.CrToSS(crd.Name), Namespace: defaultNamespace}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, key, createdSs)).Should(Succeed())
+				g.Expect(createdSs.ResourceVersion).ShouldNot(BeNil())
+				g.Expect(createdSs.Generation).Should(BeEquivalentTo(1))
 
-				err := k8sClient.Get(ctx, key, createdSs)
+			}, timeout, interval).Should(Succeed())
 
-				return err == nil
-			}, timeout, interval).Should(Equal(true))
+			if os.Getenv("USE_EXISTING_CLUSTER") == "true" {
+
+				By("Checking ready on SS")
+				Eventually(func(g Gomega) {
+
+					g.Expect(k8sClient.Get(ctx, key, createdSs)).Should(Succeed())
+					g.Expect(createdSs.Status.ReadyReplicas).Should(BeEquivalentTo(2))
+				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+			}
 
 			initialVersion := createdSs.ObjectMeta.ResourceVersion
+			initialGeneration := createdSs.ObjectMeta.Generation
 
 			By("updating the crd for persistence")
 			createdCrd := &brokerv1beta1.ActiveMQArtemis{}
@@ -2857,18 +2879,24 @@ var _ = Describe("artemis controller", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			By("Making sure that the ss gets redeployed " + crd.ObjectMeta.Name)
-			Eventually(func() bool {
-				key := types.NamespacedName{Name: namer.CrToSS(crd.Name), Namespace: defaultNamespace}
+			By("Making sure that the ss does not get redeployed " + crd.ObjectMeta.Name)
 
-				err := k8sClient.Get(ctx, key, createdSs)
+			Eventually(func(g Gomega) {
 
-				if err == nil {
-					// verify persisted with a new revision, update would have failed
-					return createdSs.ObjectMeta.ResourceVersion > "0" && initialVersion != createdSs.ObjectMeta.ResourceVersion
+				g.Expect(k8sClient.Get(ctx, key, createdSs)).Should(Succeed())
+				g.Expect(createdSs.ObjectMeta.ResourceVersion > "0" &&
+					initialVersion != createdSs.ObjectMeta.ResourceVersion).Should(BeTrue())
+
+				if os.Getenv("USE_EXISTING_CLUSTER") == "true" {
+					g.Expect(createdSs.Status.ReadyReplicas).Should(BeEquivalentTo(2))
+					g.Expect(createdSs.Status.CurrentReplicas).Should(BeEquivalentTo(2))
+					g.Expect(createdSs.Status.UpdatedReplicas).Should(BeEquivalentTo(2))
 				}
-				return err == nil
-			}, timeout, interval).Should(Equal(true))
+
+				By("verify new generation: " + string(rune(createdSs.ObjectMeta.Generation)))
+				g.Expect(createdSs.ObjectMeta.Generation).ShouldNot(BeEquivalentTo(initialGeneration))
+
+			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
 			// cleanup
 			Expect(k8sClient.Delete(ctx, createdCrd)).Should(Succeed())

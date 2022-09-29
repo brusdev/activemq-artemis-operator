@@ -35,6 +35,9 @@ func MakeStatefulSet2(currentStateFulSet *appsv1.StatefulSet, ssName string, svc
 	currentStateFulSet.ObjectMeta.Labels = labels
 	currentStateFulSet.ObjectMeta.Annotations = annotations
 
+	currentStateFulSet.Spec.UpdateStrategy = appsv1.StatefulSetUpdateStrategy{
+		Type: appsv1.RollingUpdateStatefulSetStrategyType,
+	}
 	currentStateFulSet.Spec.Replicas = &replicas
 	currentStateFulSet.Spec.ServiceName = svcHeadlessName
 	currentStateFulSet.Spec.Selector = &metav1.LabelSelector{
