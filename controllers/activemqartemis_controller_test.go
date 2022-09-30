@@ -1603,6 +1603,7 @@ var _ = Describe("artemis controller", func() {
 			crd.Spec.DeploymentPlan.Labels = make(map[string]string)
 			crd.Spec.DeploymentPlan.Labels["key1"] = "val1"
 			crd.Spec.DeploymentPlan.Labels["key2"] = "val2"
+			crd.Spec.DeploymentPlan.Labels["ActiveMQArtemis"] = "TEST"
 
 			By("Deploying the CRD " + crd.ObjectMeta.Name)
 			Expect(k8sClient.Create(ctx, &crd)).Should(Succeed())
@@ -1625,6 +1626,8 @@ var _ = Describe("artemis controller", func() {
 				g.Expect(len(createdSs.Spec.Selector.MatchLabels)).Should(BeNumerically("==", 2))
 
 				g.Expect(len(createdSs.Spec.Template.Labels)).Should(BeNumerically("==", 4))
+
+				g.Expect(createdSs.Spec.Template.Labels["ActiveMQArtemis"]).Should(BeIdenticalTo(crd.ObjectMeta.Name))
 
 			}, timeout, interval).Should(Succeed())
 

@@ -1408,7 +1408,7 @@ func MakeContainerPorts(cr *brokerv1beta1.ActiveMQArtemis) []corev1.ContainerPor
 	return containerPorts
 }
 
-func (reconciler *ActiveMQArtemisReconcilerImpl) NewPodTemplateSpecForCR(customResource *brokerv1beta1.ActiveMQArtemis, namer Namers, current *corev1.PodTemplateSpec) *corev1.PodTemplateSpec {
+func (reconciler *ActiveMQArtemisReconcilerImpl) NewPodTemplateSpecForCR(customResource *brokerv1beta1.ActiveMQArtemis, namer Namers, currentStateFulSet *appsv1.StatefulSet) *corev1.PodTemplateSpec {
 
 	reqLogger := ctrl.Log.WithName(customResource.Name)
 
@@ -1422,17 +1422,21 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) NewPodTemplateSpecForCR(customR
 	// custom labels provided in CR applied only to the pod template spec
 	// note: work with a clone of the default labels to not modify defaults
 	labels := make(map[string]string)
-	for key, value := range namer.LabelBuilder.Labels() {
+	for key, value := range currentStateFulSet.Spec.Selector.MatchLabels {
 		labels[key] = value
 	}
 	if customResource.Spec.DeploymentPlan.Labels != nil {
 		for key, value := range customResource.Spec.DeploymentPlan.Labels {
-			labels[key] = value
-			reqLogger.V(1).Info("Adding CR Label", "key", key, "value", value)
+			if currentValue, ok := labels[key]; ok {
+				reqLogger.V(1).Info("Skipping CR Label not matching staefulset selector", "key", key, "value", currentValue)
+			} else {
+				labels[key] = value
+				reqLogger.V(1).Info("Adding CR Label", "key", key, "value", value)
+			}
 		}
 	}
 
-	pts := pods.MakePodTemplateSpec(current, namespacedName, labels)
+	pts := pods.MakePodTemplateSpec(&currentStateFulSet.Spec.Template, namespacedName, labels)
 	podSpec := &pts.Spec
 
 	// REVISIT: don't know when this is nil
@@ -2052,7 +2056,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) NewStatefulSetForCR(customResou
 	}
 	currentStateFullSet = ss.MakeStatefulSet2(currentStateFullSet, namer.SsNameBuilder.Name(), namer.SvcHeadlessNameBuilder.Name(), namespacedName, customResource.Annotations, namer.LabelBuilder.Labels(), customResource.Spec.DeploymentPlan.Size)
 
-	podTemplateSpec := *reconciler.NewPodTemplateSpecForCR(customResource, namer, &currentStateFullSet.Spec.Template)
+	podTemplateSpec := *reconciler.NewPodTemplateSpecForCR(customResource, namer, currentStateFullSet)
 	if customResource.Spec.DeploymentPlan.PersistenceEnabled {
 		currentStateFullSet.Spec.VolumeClaimTemplates = *NewPersistentVolumeClaimArrayForCR(customResource, namer, 1)
 	}

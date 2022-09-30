@@ -28,6 +28,9 @@ func MakeStatefulSet2(currentStateFulSet *appsv1.StatefulSet, ssName string, svc
 				Namespace: namespacedName.Namespace,
 			},
 			Spec: appsv1.StatefulSetSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: labels,
+				},
 				Template: *pods.MakePodTemplateSpec(nil, namespacedName, labels),
 			},
 		}
@@ -37,9 +40,6 @@ func MakeStatefulSet2(currentStateFulSet *appsv1.StatefulSet, ssName string, svc
 
 	currentStateFulSet.Spec.Replicas = &replicas
 	currentStateFulSet.Spec.ServiceName = svcHeadlessName
-	currentStateFulSet.Spec.Selector = &metav1.LabelSelector{
-		MatchLabels: labels,
-	}
 
 	currentStateFulSet.Spec.Template = *pods.MakePodTemplateSpec(&currentStateFulSet.Spec.Template, namespacedName, labels)
 
