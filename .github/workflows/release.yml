@@ -24,6 +24,9 @@ jobs:
         with:
           node-version: 18.x
 
+      - name: Check doc.crds.dev
+        run: for i in {1..10}; do curl "https://doc.crds.dev/github.com/${{ github.repository }}@${{ github.ref_name }}" | grep 'ActiveMQArtemis' && break; sleep 1; done
+
       - name: Checkout artemiscloud.github.io
         uses: actions/checkout@v3
         with:
