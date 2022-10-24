@@ -17,12 +17,14 @@ limitations under the License.
 package controllers
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"time"
 
 	routev1 "github.com/openshift/api/route/v1"
@@ -110,6 +112,8 @@ var (
 		"../deploy/operator.yaml",
 	}
 	managerChannel chan struct{}
+
+	logBuffer *bytes.Buffer
 )
 
 func TestAPIs(t *testing.T) {
@@ -526,6 +530,10 @@ var _ = BeforeSuite(func() {
 		GinkgoWriter.TeeTo(os.Stderr)
 	}
 
+	testWriter := TestLogWriter{}
+
+	GinkgoWriter.TeeTo(testWriter)
+
 	ctx, cancel = context.WithCancel(context.TODO())
 
 	// force isLocalOnly=false check from artemis reconciler such that scale down controller will create
@@ -585,3 +593,26 @@ var _ = AfterSuite(func() {
 	}
 
 })
+
+type TestLogWriter struct {
+}
+
+func (e TestLogWriter) Write(p []byte) (int, error) {
+	if logBuffer != nil {
+		return logBuffer.Write(p)
+	} else {
+		return len(p), nil
+	}
+}
+
+func StartCapturingLog() {
+	logBuffer = bytes.NewBuffer(nil)
+}
+
+func MatchCapturedLog(pattern string) (matched bool, err error) {
+	return regexp.Match(pattern, logBuffer.Bytes())
+}
+
+func StopCapturingLog() {
+	logBuffer = nil
+}
