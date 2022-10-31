@@ -55,7 +55,6 @@ The operator will be deployed into the current namespace and watches the same na
 To watch all namespace, change the **WATCH_NAMESPACE** environment variable defined in deploy/operator.yaml to be empty string before deploy the operator.
 
 ```shell
-cd deploy
 ./deploy/cluster_wide_install_opr.sh
 ```
 
