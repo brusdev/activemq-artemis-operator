@@ -52,7 +52,7 @@ or if you have built your own image, change the image defined in deploy/operator
 
 The operator will be deployed into the current namespace and watches the same namespace.
 
-To watch all namespace, change the **WATCH_NAMESPACE** environment variable defined in deploy/operator.yaml to be empty string before deploy the operator.
+To watch all namespace simply run
 
 ```shell
 ./deploy/cluster_wide_install_opr.sh
