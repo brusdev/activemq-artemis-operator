@@ -27,7 +27,7 @@ COPY version/ version/
 COPY entrypoint/ entrypoint/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a \
+RUN CGO_ENABLED=0 GOOS=linux go build -a \
     -ldflags="-X '${GO_MODULE}/version.CommitHash=`git rev-parse --short HEAD`' \
     -X '${GO_MODULE}/version.BuildTimestamp=`date '+%Y-%m-%dT%H:%M:%S'`'" \
     -o /tmp/activemq-artemis-operator/${BROKER_NAME}-operator main.go
