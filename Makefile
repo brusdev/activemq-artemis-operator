@@ -6,7 +6,7 @@
 VERSION ?= 1.0.0
 
 KUBE_CLI=kubectl
-OPERATOR_VERSION := 1.0.7
+OPERATOR_VERSION := 1.0.8
 OPERATOR_ACCOUNT_NAME := activemq-artemis-operator
 OPERATOR_CLUSTER_ROLE_NAME := operator-role
 OPERATOR_IMAGE_REPO := quay.io/artemiscloud/activemq-artemis-operator
