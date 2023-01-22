@@ -113,7 +113,7 @@ func MakeVolumeMount(volumeMountName string) corev1.VolumeMount {
 //	return volumes
 //}
 
-func MakeVolume(secretName string) corev1.Volume {
+func MakeSecretVolume(secretName string) corev1.Volume {
 
 	volumeName := secretName + "-volume"
 	volume := corev1.Volume{

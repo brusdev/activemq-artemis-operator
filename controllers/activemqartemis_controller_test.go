@@ -5119,6 +5119,73 @@ var _ = Describe("artemis controller", func() {
 			Eventually(checkCrdDeleted(crd.Name, defaultNamespace, &crd), timeout, interval).Should(BeTrue())
 		})
 
+		It("Checking multiple acceptors sharing a secret", func() {
+			By("By creating a new secret")
+			ctx := context.Background()
+
+			sharedSecret := corev1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "v1",
+					Kind:       "Secret",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "my-tls-secret",
+					Namespace: defaultNamespace,
+				},
+				StringData: map[string]string{
+					"broker.ks":          "INVALID_KEYSTORE",
+					"client.ts":          "INVALID_KEYSTORE",
+					"keyStorePassword":   "securepass",
+					"trustStorePassword": "securepass",
+				},
+			}
+
+			By("Deploying credentialsSecret")
+			k8sClient.Delete(ctx, &sharedSecret)
+			Expect(k8sClient.Create(ctx, &sharedSecret)).Should(Succeed())
+
+			By("By creating a new crd")
+			crd := generateArtemisSpec(defaultNamespace)
+			crd.Spec.DeploymentPlan = brokerv1beta1.DeploymentPlanType{
+				Size: 1,
+			}
+			crd.Spec.Acceptors = []brokerv1beta1.AcceptorType{
+				{
+					Name:       "acceptor0",
+					Port:       61617,
+					Expose:     true,
+					SSLEnabled: true,
+					SSLSecret:  sharedSecret.Name,
+				},
+				{
+					Name:       "acceptor1",
+					Port:       61618,
+					Expose:     true,
+					SSLEnabled: true,
+					SSLSecret:  sharedSecret.Name,
+				},
+			}
+			By("Deploying a broker")
+			Expect(k8sClient.Create(ctx, &crd)).Should(Succeed())
+
+			createdCrd := &brokerv1beta1.ActiveMQArtemis{}
+
+			if os.Getenv("USE_EXISTING_CLUSTER") == "true" {
+
+				By("verifying started")
+				brokerKey := types.NamespacedName{Name: crd.Name, Namespace: defaultNamespace}
+				Eventually(func(g Gomega) {
+
+					g.Expect(k8sClient.Get(ctx, brokerKey, createdCrd)).Should(Succeed())
+					g.Expect(len(createdCrd.Status.PodStatus.Starting)).Should(BeEquivalentTo(1))
+				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+			}
+
+			// cleanup
+			k8sClient.Delete(ctx, &crd)
+			k8sClient.Delete(ctx, &sharedSecret)
+		})
+
 		It("Checking acceptor service and route/ingress while toggle expose", func() {
 
 			if os.Getenv("USE_EXISTING_CLUSTER") == "true" {

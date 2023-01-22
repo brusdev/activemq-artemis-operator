@@ -1509,6 +1509,20 @@ func getDeployedResources(instance *brokerv1beta1.ActiveMQArtemis, client rtclie
 	return resourceMap, nil
 }
 
+func AddSecretVolumeIfAbsent(secretName string, volumeDefinitions []corev1.Volume) []corev1.Volume {
+	newVolume := volumes.MakeSecretVolume(secretName)
+
+	for _, volume := range volumeDefinitions {
+		if newVolume.Name == volume.Name {
+			return volumeDefinitions
+		}
+	}
+
+	volumeDefinitions = append(volumeDefinitions, newVolume)
+
+	return volumeDefinitions
+}
+
 func MakeVolumes(customResource *brokerv1beta1.ActiveMQArtemis, namer Namers) []corev1.Volume {
 
 	volumeDefinitions := []corev1.Volume{}
@@ -1526,8 +1540,7 @@ func MakeVolumes(customResource *brokerv1beta1.ActiveMQArtemis, namer Namers) []
 		if "" != acceptor.SSLSecret {
 			secretName = acceptor.SSLSecret
 		}
-		volume := volumes.MakeVolume(secretName)
-		volumeDefinitions = append(volumeDefinitions, volume)
+		volumeDefinitions = AddSecretVolumeIfAbsent(secretName, volumeDefinitions)
 	}
 
 	// Scan connectors for any with sslEnabled
@@ -1539,8 +1552,7 @@ func MakeVolumes(customResource *brokerv1beta1.ActiveMQArtemis, namer Namers) []
 		if "" != connector.SSLSecret {
 			secretName = connector.SSLSecret
 		}
-		volume := volumes.MakeVolume(secretName)
-		volumeDefinitions = append(volumeDefinitions, volume)
+		volumeDefinitions = AddSecretVolumeIfAbsent(secretName, volumeDefinitions)
 	}
 
 	if customResource.Spec.Console.SSLEnabled {
@@ -1551,12 +1563,25 @@ func MakeVolumes(customResource *brokerv1beta1.ActiveMQArtemis, namer Namers) []
 			if "" != customResource.Spec.Console.SSLSecret {
 				secretName = customResource.Spec.Console.SSLSecret
 			}
-			volume := volumes.MakeVolume(secretName)
-			volumeDefinitions = append(volumeDefinitions, volume)
+			volumeDefinitions = AddSecretVolumeIfAbsent(secretName, volumeDefinitions)
 		}
 	}
 
 	return volumeDefinitions
+}
+
+func AddVolumeMountIfAbsent(volumeMountName string, volumeMounts []corev1.VolumeMount) []corev1.VolumeMount {
+	newVolumeMount := volumes.MakeVolumeMount(volumeMountName)
+
+	for _, volumeMount := range volumeMounts {
+		if newVolumeMount.Name == volumeMount.Name {
+			return volumeMounts
+		}
+	}
+
+	volumeMounts = append(volumeMounts, newVolumeMount)
+
+	return volumeMounts
 }
 
 func MakeVolumeMounts(customResource *brokerv1beta1.ActiveMQArtemis, namer Namers) []corev1.VolumeMount {
@@ -1576,8 +1601,7 @@ func MakeVolumeMounts(customResource *brokerv1beta1.ActiveMQArtemis, namer Namer
 		if "" != acceptor.SSLSecret {
 			volumeMountName = acceptor.SSLSecret + "-volume"
 		}
-		volumeMount := volumes.MakeVolumeMount(volumeMountName)
-		volumeMounts = append(volumeMounts, volumeMount)
+		volumeMounts = AddVolumeMountIfAbsent(volumeMountName, volumeMounts)
 	}
 
 	// Scan connectors for any with sslEnabled
@@ -1589,8 +1613,7 @@ func MakeVolumeMounts(customResource *brokerv1beta1.ActiveMQArtemis, namer Namer
 		if "" != connector.SSLSecret {
 			volumeMountName = connector.SSLSecret + "-volume"
 		}
-		volumeMount := volumes.MakeVolumeMount(volumeMountName)
-		volumeMounts = append(volumeMounts, volumeMount)
+		volumeMounts = AddVolumeMountIfAbsent(volumeMountName, volumeMounts)
 	}
 
 	if customResource.Spec.Console.SSLEnabled {
@@ -1601,8 +1624,7 @@ func MakeVolumeMounts(customResource *brokerv1beta1.ActiveMQArtemis, namer Namer
 			if "" != customResource.Spec.Console.SSLSecret {
 				volumeMountName = customResource.Spec.Console.SSLSecret + "-volume"
 			}
-			volumeMount := volumes.MakeVolumeMount(volumeMountName)
-			volumeMounts = append(volumeMounts, volumeMount)
+			volumeMounts = AddVolumeMountIfAbsent(volumeMountName, volumeMounts)
 		}
 	}
 
