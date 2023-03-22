@@ -101,13 +101,13 @@ ifeq ($(ENABLE_WEBHOOKS),true)
 ## v2alpha3, v2alpha4 and v2alpha3 requires allowDangerousTypes=true because they use float32 type
 	cd config/manager && $(KUSTOMIZE) edit add resource webhook_secret.yaml 
 	$(CONTROLLER_GEN) rbac:roleName=$(OPERATOR_CLUSTER_ROLE_NAME) crd:allowDangerousTypes=true webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-	find config -type f -exec sed -i -e '/creationTimestamp/d' {} \;
+	find config -type f -exec sed -i.bak -e '/creationTimestamp/d' {} \; -exec rm {}.bak \;
 else
 ## Generate ClusterRole and CustomResourceDefinition objects.
 ## v2alpha3, v2alpha4 and v2alpha3 requires allowDangerousTypes=true because they use float32 type
 	cd config/manager && $(KUSTOMIZE) edit remove resource webhook_secret.yaml 
 	$(CONTROLLER_GEN) rbac:roleName=$(OPERATOR_CLUSTER_ROLE_NAME) crd:allowDangerousTypes=true paths="./..." output:crd:artifacts:config=config/crd/bases
-	find config -type f -exec sed -i -e '/creationTimestamp/d' {} \;
+	find config -type f -exec sed -i.bak -e '/creationTimestamp/d' {} \; -exec rm {}.bak \;
 endif
 
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -213,11 +213,11 @@ bundle: manifests operator-sdk kustomize ## Generate bundle manifests and metada
 	$(OPERATOR_SDK) generate kustomize manifests -q --package $(BUNDLE_PACKAGE)
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle -q --overwrite --package $(BUNDLE_PACKAGE) --version $(VERSION) $(BUNDLE_METADATA_OPTS)
-	sed -i '/creationTimestamp/d' ./bundle/manifests/*.yaml
+	sed -i.bak '/creationTimestamp/d' ./bundle/manifests/*.yaml && rm ./bundle/manifests/*.bak
 	sed 's/annotations://' config/metadata/$(BUNDLE_PACKAGE).annotations.yaml >> bundle/metadata/annotations.yaml
 	sed -e 's/annotations://' -e 's/  /LABEL /g' -e 's/: /=/g'  config/metadata/$(BUNDLE_PACKAGE).annotations.yaml >> bundle.Dockerfile
-	sed -i 's/operators.operatorframework.io.bundle.package.v1:.*/operators.operatorframework.io.bundle.package.v1: $(BUNDLE_ANNOTATION_PACKAGE)/' bundle/metadata/annotations.yaml
-	sed -i 's/operators.operatorframework.io.bundle.package.v1=.*/operators.operatorframework.io.bundle.package.v1=$(BUNDLE_ANNOTATION_PACKAGE)/' bundle.Dockerfile
+	sed -i.bak 's/operators.operatorframework.io.bundle.package.v1:.*/operators.operatorframework.io.bundle.package.v1: $(BUNDLE_ANNOTATION_PACKAGE)/' bundle/metadata/annotations.yaml && rm bundle/metadata/annotations.yaml.bak
+	sed -i.bak 's/operators.operatorframework.io.bundle.package.v1=.*/operators.operatorframework.io.bundle.package.v1=$(BUNDLE_ANNOTATION_PACKAGE)/' bundle.Dockerfile && rm bundle.Dockerfile.bak
 	$(OPERATOR_SDK) bundle validate ./bundle
 
 .PHONY: bundle-clean
