@@ -2196,17 +2196,26 @@ func configPodSecurity(podSpec *corev1.PodSpec, podSecurity *brokerv1beta1.PodSe
 
 func determineImageToUse(customResource *brokerv1beta1.ActiveMQArtemis, imageTypeKey string) string {
 
+	found := false
 	imageName := ""
 	compactVersionToUse, _ := determineCompactVersionToUse(customResource)
 
 	genericRelatedImageEnvVarName := ImageNamePrefix + imageTypeKey + "_" + compactVersionToUse
 	// Default case of x86_64/amd64 covered here
 	archSpecificRelatedImageEnvVarName := genericRelatedImageEnvVarName
-	if osruntime.GOARCH == "s390x" || osruntime.GOARCH == "ppc64le" {
+	if osruntime.GOARCH == "arm64" || osruntime.GOARCH == "s390x" || osruntime.GOARCH == "ppc64le" {
 		archSpecificRelatedImageEnvVarName = genericRelatedImageEnvVarName + "_" + osruntime.GOARCH
 	}
-	imageName, found := os.LookupEnv(archSpecificRelatedImageEnvVarName)
+	imageName, found = os.LookupEnv(archSpecificRelatedImageEnvVarName)
 	clog.V(1).Info("DetermineImageToUse", "env", archSpecificRelatedImageEnvVarName, "imageName", imageName)
+
+	// Use genericRelatedImageEnvVarName if archSpecificRelatedImageEnvVarName is not found
+	if !found {
+		imageName, found = os.LookupEnv(genericRelatedImageEnvVarName)
+		clog.V(1).Info("DetermineImageToUse", "env", genericRelatedImageEnvVarName, "imageName", imageName)
+	}
+
+	// Use latest images if archSpecificRelatedImageEnvVarName and genericRelatedImageEnvVarName are not found
 	if !found {
 		imageName = version.DefaultImageName(archSpecificRelatedImageEnvVarName)
 		clog.V(1).Info("DetermineImageToUse - from default", "env", archSpecificRelatedImageEnvVarName, "imageName", imageName)
