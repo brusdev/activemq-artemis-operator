@@ -63,17 +63,19 @@ jobs:
           git config user.email 'artemiscloudbot@users.noreply.github.com' &&
           git add --all && git commit --all --allow-empty --message 'Update docs to ${{ github.ref_name }}' && git push
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
       - name: Build the image
-        run: docker build --tag $IMAGE_NAME:latest .
+        run: |
+          podman build --no-cache --platform linux/amd64 --platform linux/arm64 --manifest $IMAGE_NAME:latest .
 
       - name: Push the image
-        run: >
-          RELEASE_TAG="$(git describe --exact-match --tags)" && IMAGE_TAG=${RELEASE_TAG#v} &&
-          docker login --username=${{ secrets.QUAY_USERNAME }} --password=${{ secrets.QUAY_PASSWORD }} quay.io &&
-          docker tag $IMAGE_NAME:latest quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME:$IMAGE_TAG &&
-          docker push quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME:$IMAGE_TAG &&
-          docker tag $IMAGE_NAME:latest quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME:latest &&
-          docker push quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME:latest
+        run: |
+          IMAGE_TAG="$(git describe --exact-match --tags | sed 's/v//')"
+          podman login --username=${{ secrets.QUAY_USERNAME }} --password=${{ secrets.QUAY_PASSWORD }} quay.io
+          podman manifest push $IMAGE_NAME:latest docker://quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME:latest
+          podman manifest push $IMAGE_NAME:latest docker://quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME:$IMAGE_TAG
 
       - name: Build the bundle image
         run: export BUNDLE_IMG=$IMAGE_NAME-bundle:latest && make bundle-build
