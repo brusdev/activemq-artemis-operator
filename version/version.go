@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	Version = "1.0.13"
+	Version = "1.0.14"
 	// PriorVersion - prior version
-	PriorVersion = "1.0.12"
+	PriorVersion = "1.0.13"
 
 	//Vars injected at build-time
 	BuildTimestamp = ""
