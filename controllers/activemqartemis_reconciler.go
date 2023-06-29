@@ -2215,7 +2215,7 @@ func determineImageToUse(customResource *brokerv1beta1.ActiveMQArtemis, imageTyp
 	// Use genericRelatedImageEnvVarName if archSpecificRelatedImageEnvVarName is not found
 	if !found {
 		imageName, found = os.LookupEnv(genericRelatedImageEnvVarName)
-		clog.V(1).Info("DetermineImageToUse", "env", genericRelatedImageEnvVarName, "imageName", imageName)
+		clog.V(1).Info("DetermineImageToUse - from generic", "env", genericRelatedImageEnvVarName, "imageName", imageName)
 	}
 
 	// Use latest images if archSpecificRelatedImageEnvVarName and genericRelatedImageEnvVarName are not found

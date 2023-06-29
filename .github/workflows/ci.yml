@@ -53,7 +53,10 @@ jobs:
 
       - name: Build the image
         run: |
-          podman build --label quay.expires-after=90d --label git-sha=$GITHUB_SHA --no-cache --platform linux/amd64 --platform linux/arm64 --manifest $IMAGE_NAME:dev.latest .
+          #podman build --label quay.expires-after=90d --label git-sha=$GITHUB_SHA --no-cache --platform linux/amd64 --manifest $IMAGE_NAME:dev.latest .
+          podman build --label quay.expires-after=90d --label git-sha=$GITHUB_SHA --no-cache --platform linux/arm64 --manifest $IMAGE_NAME:dev.latest .
+          #podman manifest create $IMAGE_NAME:dev.latest $IMAGE_NAME:dev.latest-linux-amd64 $IMAGE_NAME:dev.latest-linux-arm64
+          #podman manifest create $IMAGE_NAME:dev.latest $IMAGE_NAME:dev.latest-linux-arm64
 
       - name: Push the dev image
         if: ${{ github.event_name == 'push' }}

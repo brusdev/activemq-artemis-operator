@@ -68,7 +68,10 @@ jobs:
 
       - name: Build the image
         run: |
-          podman build --no-cache --platform linux/amd64 --platform linux/arm64 --manifest $IMAGE_NAME:latest .
+          #podman build --no-cache --platform linux/amd64 --manifest $IMAGE_NAME:latest .
+          podman build --no-cache --platform linux/arm64 --manifest $IMAGE_NAME:latest .
+          #podman manifest create $IMAGE_NAME:latest $IMAGE_NAME:latest-linux-amd64 $IMAGE_NAME:latest-linux-arm64
+          #podman manifest create $IMAGE_NAME:latest $IMAGE_NAME:latest-linux-arm64
 
       - name: Push the image
         run: |
