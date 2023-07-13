@@ -536,6 +536,12 @@ spec:
         path: acceptors[0].keyStoreProvider
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Type of keystore being used; "JKS", "JCEKS", "PKCS12", etc. Default
+          in broker is "JKS"
+        displayName: KeyStore Type
+        path: acceptors[0].keyStoreType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
       - description: To indicate which kind of routing type to use
         displayName: Multicast Prefix
         path: acceptors[0].multicastPrefix
@@ -597,6 +603,11 @@ spec:
         path: acceptors[0].suppressInternalManagementObjects
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: The name of the truststore secret.
+        displayName: Trust Secret
+        path: acceptors[0].trustSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
       - description: Provider used for the truststore; "SUN", "SunJCE", etc. Default
           in broker is null
         displayName: TrustStore Provider
@@ -1069,6 +1080,12 @@ spec:
         path: connectors[0].keyStoreProvider
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Type of keystore being used; "JKS", "JCEKS", "PKCS12", etc. Default
+          in broker is "JKS"
+        displayName: KeyStore Type
+        path: connectors[0].keyStoreType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
       - description: The name of the connector
         displayName: Name
         path: connectors[0].name
@@ -1106,6 +1123,11 @@ spec:
       - description: Name of the secret to use for ssl information
         displayName: SSL Secret
         path: connectors[0].sslSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The name of the truststore secret.
+        displayName: Trust Secret
+        path: connectors[0].trustSecret
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
       - description: Provider used for the truststore; "SUN", "SunJCE", etc. Default
@@ -1161,6 +1183,12 @@ spec:
         path: console.ingressHost
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Type of keystore being used; "JKS", "JCEKS", "PKCS12", etc. Default
+          in broker is "JKS"
+        displayName: KeyStore Type
+        path: console.keyStoreType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
       - description: The name of the console. Default is wconsj.
         displayName: Name
         path: console.name
@@ -1174,6 +1202,17 @@ spec:
       - description: Name of the secret to use for ssl information
         displayName: SSL Secret
         path: console.sslSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The name of the truststore secret.
+        displayName: Trust Secret
+        path: console.trustSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Type of truststore being used; "JKS", "JCEKS", "PKCS12", etc.
+          Default in broker is "JKS"
+        displayName: TrustStore Type
+        path: console.trustStoreType
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
       - description: If the embedded server requires client authentication

@@ -3658,6 +3658,10 @@ var _ = Describe("artemis controller", func() {
 			reconcilerImpl := NewActiveMQArtemisReconcilerImpl(&crd, ctrl.Log, k8sClient.Scheme())
 
 			defaultConsoleSecretName := crd.Name + "-console-secret"
+			tlsSecret, err := CreateTlsSecret(defaultConsoleSecretName, defaultNamespace, "password", nil)
+			Expect(err).To(BeNil())
+			Expect(k8sClient.Create(ctx, tlsSecret)).To(Succeed())
+
 			currentSS := &appsv1.StatefulSet{}
 			currentSS.Name = namer.CrToSS(crd.Name)
 			currentSS.Namespace = defaultNamespace
@@ -3679,7 +3683,7 @@ var _ = Describe("artemis controller", func() {
 			foundInternalSecret := false
 			defaultSecretPath := "/etc/" + defaultConsoleSecretName + "-volume/"
 			defaultSslArgs := " --ssl-key " + defaultSecretPath + "broker.ks --ssl-key-password password --ssl-trust " + defaultSecretPath + "client.ts --ssl-trust-password password"
-			for _, reqres := range reconcilerImpl.requestedResources {
+			for _, reqres := range common.ToResourceList(reconcilerImpl.requestedResources) {
 				if reqres.GetObjectKind().GroupVersionKind().Kind == "Secret" {
 					secret := reqres.(*corev1.Secret)
 					if secret.Name == secretName {
@@ -3709,6 +3713,7 @@ var _ = Describe("artemis controller", func() {
 			}
 			Expect(foundSecretRef).To(BeTrue())
 			Expect(foundSecretKey).To(BeTrue())
+			CleanResource(tlsSecret, tlsSecret.Name, tlsSecret.Namespace)
 		})
 
 		It("reconcile verify internal secret owner ref", func() {
@@ -3738,6 +3743,11 @@ var _ = Describe("artemis controller", func() {
 			reconcilerImpl := NewActiveMQArtemisReconcilerImpl(&crd, ctrl.Log, k8sClient.Scheme())
 			namer := MakeNamers(&crd)
 			defaultConsoleSecretName := crd.Name + "-console-secret"
+
+			tlsSecret, err := CreateTlsSecret(defaultConsoleSecretName, defaultNamespace, "password", nil)
+			Expect(err).To(BeNil())
+			Expect(k8sClient.Create(ctx, tlsSecret)).To(Succeed())
+
 			internalSecretName := defaultConsoleSecretName + "-internal"
 			internalConsoleSecretKey := types.NamespacedName{Namespace: crd.Namespace, Name: internalSecretName}
 
@@ -3841,6 +3851,10 @@ var _ = Describe("artemis controller", func() {
 			internalSecretName := defaultConsoleSecretName + "-internal"
 			internalConsoleSecretKey := types.NamespacedName{Namespace: crd.Namespace, Name: internalSecretName}
 
+			tlsSecret, err := CreateTlsSecret(defaultConsoleSecretName, defaultNamespace, "password", nil)
+			Expect(err).To(BeNil())
+			Expect(k8sClient.Create(ctx, tlsSecret)).To(Succeed())
+
 			By("making abandoned internal secret")
 			createdInternalSecret := &corev1.Secret{}
 			createdInternalSecret.Name = internalConsoleSecretKey.Name
@@ -3877,6 +3891,7 @@ var _ = Describe("artemis controller", func() {
 			By("cleanup")
 			k8sClient.Delete(ctx, createdInternalSecret)
 			k8sClient.Delete(ctx, createdCrd)
+			CleanResource(tlsSecret, tlsSecret.Name, tlsSecret.Namespace)
 		})
 	})
 
@@ -5871,7 +5886,7 @@ var _ = Describe("artemis controller", func() {
 			// it requires the key to be logging.properties
 			loggingData["logging-configuration"] = "someproperty=somevalue"
 			loggingSecretKey := types.NamespacedName{Name: loggingSecretName, Namespace: defaultNamespace}
-			loggingSecret := secrets.NewSecret(loggingSecretKey, loggingSecretName, loggingData, nil)
+			loggingSecret := secrets.NewSecret(loggingSecretKey, loggingData, nil)
 			Eventually(func() bool {
 				err := k8sClient.Create(ctx, loggingSecret, &client.CreateOptions{})
 				return err == nil
@@ -6034,7 +6049,7 @@ var _ = Describe("artemis controller", func() {
 
 			loggingData := make(map[string]string)
 			loggingData[LoggingConfigKey] = "someproperty=somevalue"
-			secret := secrets.NewSecret(types.NamespacedName{Name: loggingSecretName, Namespace: defaultNamespace}, loggingSecretName, loggingData, nil)
+			secret := secrets.NewSecret(types.NamespacedName{Name: loggingSecretName, Namespace: defaultNamespace}, loggingData, nil)
 			Eventually(func() bool {
 				err := k8sClient.Create(ctx, secret, &client.CreateOptions{})
 				return err == nil
@@ -6287,8 +6302,8 @@ var _ = Describe("artemis controller", func() {
 			}, timeout, interval).Should(Succeed())
 
 			// cleanup
-			Expect(k8sClient.Delete(ctx, createdCrd)).Should(Succeed())
-			Expect(k8sClient.Delete(ctx, createdAddressCr)).Should(Succeed())
+			CleanResource(createdCrd, createdCrd.Name, createdCrd.Namespace)
+			CleanResource(createdAddressCr, createdAddressCr.Name, createdAddressCr.Namespace)
 		})
 	})
 
@@ -6796,6 +6811,16 @@ var _ = Describe("artemis controller", func() {
 				}
 
 				By("updating with expose=true and tls")
+				sslSecretName := crd.Name + "-" + crd.Spec.Acceptors[0].Name + "-secret"
+				sslSecret, err := CreateTlsSecret(sslSecretName, defaultNamespace, "password", nil)
+				Expect(err).To(BeNil())
+				Expect(k8sClient.Create(ctx, sslSecret)).Should(Succeed())
+
+				sslSecretName1 := crd.Name + "-" + crd.Spec.Connectors[0].Name + "-secret"
+				sslSecret1, err := CreateTlsSecret(sslSecretName1, defaultNamespace, "password", nil)
+				Expect(err).To(BeNil())
+				Expect(k8sClient.Create(ctx, sslSecret1)).Should(Succeed())
+
 				Eventually(func(g Gomega) {
 					key := types.NamespacedName{Name: crd.Name, Namespace: defaultNamespace}
 					g.Expect(k8sClient.Get(ctx, key, &crd)).Should(Succeed())
@@ -6848,6 +6873,8 @@ var _ = Describe("artemis controller", func() {
 				}
 
 				CleanResource(&crd, crd.Name, defaultNamespace)
+				CleanResource(sslSecret, sslSecret.Name, defaultNamespace)
+				CleanResource(sslSecret1, sslSecret1.Name, defaultNamespace)
 			}
 		})
 	})
@@ -7159,14 +7186,19 @@ var _ = Describe("artemis controller", func() {
 				Size: common.Int32ToPtr(1),
 			}
 			keyStoreProvider := "SunJCE"
+			acceptorName := "new-acceptor"
 			cr.Spec.Acceptors = []brokerv1beta1.AcceptorType{
 				{
-					Name:             "new-acceptor",
+					Name:             acceptorName,
 					Port:             61666,
 					SSLEnabled:       true,
 					KeyStoreProvider: keyStoreProvider,
 				},
 			}
+			sslSecretName := cr.Name + "-" + acceptorName + "-secret"
+			sslSecret, err := CreateTlsSecret(sslSecretName, defaultNamespace, "password", nil)
+			Expect(err).To(BeNil())
+			Expect(k8sClient.Create(ctx, sslSecret)).Should(Succeed())
 			Expect(k8sClient.Create(ctx, &cr)).Should(Succeed())
 
 			ssNamespacedName := types.NamespacedName{Name: namer.CrToSS(cr.Name), Namespace: defaultNamespace}
@@ -7197,6 +7229,7 @@ var _ = Describe("artemis controller", func() {
 			}, timeout, interval).Should(Succeed())
 
 			CleanResource(&cr, cr.Name, defaultNamespace)
+			CleanResource(sslSecret, sslSecret.Name, defaultNamespace)
 		})
 
 		It("Testing acceptor trustStoreType being set and unset", func() {
@@ -7208,6 +7241,7 @@ var _ = Describe("artemis controller", func() {
 				Size: common.Int32ToPtr(1),
 			}
 			trustStoreType := "JCEKS"
+			acceptorName := "new-acceptor"
 			cr.Spec.Acceptors = []brokerv1beta1.AcceptorType{
 				{
 					Name:           "new-acceptor",
@@ -7216,6 +7250,10 @@ var _ = Describe("artemis controller", func() {
 					TrustStoreType: trustStoreType,
 				},
 			}
+			sslSecretName := cr.Name + "-" + acceptorName + "-secret"
+			sslSecret, err := CreateTlsSecret(sslSecretName, defaultNamespace, "password", nil)
+			Expect(err).To(BeNil())
+			Expect(k8sClient.Create(ctx, sslSecret)).Should(Succeed())
 			Expect(k8sClient.Create(ctx, &cr)).Should(Succeed())
 
 			ssResourceVersionWithSslEnabled := ""
@@ -7299,6 +7337,7 @@ var _ = Describe("artemis controller", func() {
 			}, timeout, interval).Should(Succeed())
 
 			CleanResource(&cr, cr.Name, defaultNamespace)
+			CleanResource(sslSecret, sslSecret.Name, defaultNamespace)
 		})
 
 		It("Testing acceptor trustStoreProvider being set", func() {
@@ -7310,6 +7349,7 @@ var _ = Describe("artemis controller", func() {
 				Size: common.Int32ToPtr(1),
 			}
 			trustStoreProvider := "SUN"
+			acceptorName := "new-acceptor"
 			cr.Spec.Acceptors = []brokerv1beta1.AcceptorType{
 				{
 					Name:               "new-acceptor",
@@ -7318,6 +7358,11 @@ var _ = Describe("artemis controller", func() {
 					TrustStoreProvider: trustStoreProvider,
 				},
 			}
+			sslSecretName := cr.Name + "-" + acceptorName + "-secret"
+			sslSecret, err := CreateTlsSecret(sslSecretName, defaultNamespace, "password", nil)
+			Expect(err).To(BeNil())
+			Expect(k8sClient.Create(ctx, sslSecret)).Should(Succeed())
+
 			Expect(k8sClient.Create(ctx, &cr)).Should(Succeed())
 
 			ssNamespacedName := types.NamespacedName{Name: namer.CrToSS(cr.Name), Namespace: defaultNamespace}
@@ -7347,6 +7392,7 @@ var _ = Describe("artemis controller", func() {
 			}, timeout, interval).Should(Succeed())
 
 			CleanResource(&cr, cr.Name, defaultNamespace)
+			CleanResource(sslSecret, sslSecret.Name, defaultNamespace)
 		})
 	})
 

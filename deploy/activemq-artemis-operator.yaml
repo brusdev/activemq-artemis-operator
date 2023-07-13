@@ -411,6 +411,9 @@ spec:
                     keyStoreProvider:
                       description: Provider used for the keystore; "SUN", "SunJCE", etc. Default is null
                       type: string
+                    keyStoreType:
+                      description: Type of keystore being used; "JKS", "JCEKS", "PKCS12", etc. Default in broker is "JKS"
+                      type: string
                     multicastPrefix:
                       description: To indicate which kind of routing type to use
                       type: string
@@ -445,6 +448,9 @@ spec:
                     suppressInternalManagementObjects:
                       description: If prevents advisory addresses/queues to be registered to management service, default false
                       type: boolean
+                    trustSecret:
+                      description: The name of the truststore secret.
+                      type: string
                     trustStoreProvider:
                       description: Provider used for the truststore; "SUN", "SunJCE", etc. Default in broker is null
                       type: string
@@ -733,6 +739,9 @@ spec:
                     keyStoreProvider:
                       description: Provider used for the keystore; "SUN", "SunJCE", etc. Default is null
                       type: string
+                    keyStoreType:
+                      description: Type of keystore being used; "JKS", "JCEKS", "PKCS12", etc. Default in broker is "JKS"
+                      type: string
                     name:
                       description: The name of the connector
                       type: string
@@ -754,6 +763,9 @@ spec:
                       type: string
                     sslSecret:
                       description: Name of the secret to use for ssl information
+                      type: string
+                    trustSecret:
+                      description: The name of the truststore secret.
                       type: string
                     trustStoreProvider:
                       description: Provider used for the truststore; "SUN", "SunJCE", etc. Default in broker is null
@@ -791,6 +803,9 @@ spec:
                   ingressHost:
                     description: 'Host for Ingress and Route resources of the acceptor. It supports the following variables: $(CR_NAME), $(CR_NAMESPACE), $(BROKER_ORDINAL), $(ITEM_NAME), $(RES_NAME) and $(INGRESS_DOMAIN). Default is $(CR_NAME)-$(ITEM_NAME)-$(BROKER_ORDINAL)-svc-$(RES_TYPE)-$(CR_NAMESPACE).$(INGRESS_DOMAIN)'
                     type: string
+                  keyStoreType:
+                    description: Type of keystore being used; "JKS", "JCEKS", "PKCS12", etc. Default in broker is "JKS"
+                    type: string
                   name:
                     description: The name of the console. Default is wconsj.
                     type: string
@@ -799,6 +814,12 @@ spec:
                     type: boolean
                   sslSecret:
                     description: Name of the secret to use for ssl information
+                    type: string
+                  trustSecret:
+                    description: The name of the truststore secret.
+                    type: string
+                  trustStoreType:
+                    description: Type of truststore being used; "JKS", "JCEKS", "PKCS12", etc. Default in broker is "JKS"
                     type: string
                   useClientAuth:
                     description: If the embedded server requires client authentication
