@@ -728,6 +728,10 @@ const (
 	ValidConditionFailedExtraMountReason      = "InvalidExtraMount"
 	ValidConditionFailedDuplicateAcceptorPort = "DuplicateAcceptorPort"
 
+	AvailableConditionType          = "Available"
+	AvailableConditionSuccessReason = "ResourceAvailable"
+	AvailableConditionUnknownReason = "ResourceNonAvailable"
+
 	ReadyConditionType      = "Ready"
 	ReadyConditionReason    = "ResourceReady"
 	NotReadyConditionReason = "WaitingForAllConditions"
