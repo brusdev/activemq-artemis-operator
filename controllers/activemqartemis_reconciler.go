@@ -1715,6 +1715,17 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) NewPodTemplateSpecForCR(customR
 
 	podSpec.ImagePullSecrets = customResource.Spec.DeploymentPlan.ImagePullSecrets
 
+	allowPrivilegeEscalation := false
+	runAsNonRoot := true
+	capabilities := corev1.Capabilities{Drop: []corev1.Capability{"ALL"}}
+	seccompProfile := corev1.SeccompProfile{Type: "RuntimeDefault"}
+	securityContext := corev1.SecurityContext{
+		AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+		Capabilities:             &capabilities,
+		SeccompProfile:           &seccompProfile,
+		RunAsNonRoot:             &runAsNonRoot,
+	}
+
 	container := containers.MakeContainer(podSpec, customResource.Name, common.ResolveImage(customResource, common.BrokerImageKey), MakeEnvVarArrayForCR(customResource, namer))
 
 	container.Resources = customResource.Spec.DeploymentPlan.Resources
@@ -1747,6 +1758,8 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) NewPodTemplateSpecForCR(customR
 	container.StartupProbe = reconciler.configureStartupProbe(container, customResource.Spec.DeploymentPlan.StartupProbe)
 	container.LivenessProbe = reconciler.configureLivenessProbe(container, customResource.Spec.DeploymentPlan.LivenessProbe)
 	container.ReadinessProbe = reconciler.configureReadinessProbe(container, customResource.Spec.DeploymentPlan.ReadinessProbe)
+
+	container.SecurityContext = &securityContext
 
 	if len(customResource.Spec.DeploymentPlan.NodeSelector) > 0 {
 		reqLogger.V(1).Info("Adding Node Selectors", "len", len(customResource.Spec.DeploymentPlan.NodeSelector))
@@ -1816,6 +1829,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) NewPodTemplateSpecForCR(customR
 	reqLogger.V(2).Info("Creating init container for broker configuration")
 	initContainer := containers.MakeInitContainer(podSpec, customResource.Name, common.ResolveImage(customResource, common.InitImageKey), MakeEnvVarArrayForCR(customResource, namer))
 	initContainer.Resources = customResource.Spec.DeploymentPlan.Resources
+	initContainer.SecurityContext = &securityContext
 
 	var initCmds []string
 	var initCfgRootDir = "/init_cfg_root"
