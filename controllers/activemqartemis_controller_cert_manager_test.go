@@ -157,6 +157,89 @@ var _ = Describe("artemis controller with cert manager test", Label("controller-
 				Expect(valid).To(BeTrue())
 			})
 		})
+
+		Context("certificate rotation", Label("certificate"), func() {
+			It("broker certificate rotation", func() {
+				activeMQArtemis := generateArtemisSpec(defaultNamespace)
+
+				issuerName := activeMQArtemis.Name + "-issuer"
+				By("Creating issuer: " + issuerName)
+				issuer := cmv1.Issuer{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "v1",
+						Kind:       "Issuer",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      issuerName,
+						Namespace: defaultNamespace,
+					},
+					Spec: cmv1.IssuerSpec{
+						IssuerConfig: cmv1.IssuerConfig{
+							SelfSigned: &cmv1.SelfSignedIssuer{},
+						},
+					},
+				}
+				Expect(k8sClient.Create(ctx, &issuer)).Should(Succeed())
+
+				certName := activeMQArtemis.Name + "-cert"
+				certSecretName := certName + "-secret"
+				By("Creating certificate: " + certName)
+				cert := cmv1.Certificate{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "v1",
+						Kind:       "Certificate",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      certName,
+						Namespace: defaultNamespace,
+					},
+					Spec: cmv1.CertificateSpec{
+						SecretName: certSecretName,
+						DNSNames:   defaultSanDnsNames,
+						IssuerRef: cmmetav1.ObjectReference{
+							Name: issuerName,
+							Kind: "Issuer",
+						},
+						Subject: &cmv1.X509Subject{
+							Organizations: []string{"ArtemisCloud"},
+						},
+					},
+				}
+				Expect(k8sClient.Create(ctx, &cert)).Should(Succeed())
+
+				By("Creating ActiveMQArtemis: " + activeMQArtemis.Name)
+				activeMQArtemis.Spec.Acceptors = []brokerv1beta1.AcceptorType{
+					{
+						Name:       "tls-acceptor",
+						Port:       61617,
+						SSLEnabled: true,
+						SSLSecret:  certSecretName,
+					},
+				}
+				activeMQArtemis.Spec.Env = []corev1.EnvVar{{Name: "JAVA_ARGS_APPEND", Value: "-Djavax.net.debug=all"}}
+				//activeMQArtemis.Spec.BrokerProperties = []string{"acceptorConfigurations.tls-acceptor.params.trustStorePath=-"}
+
+				Expect(k8sClient.Create(ctx, &activeMQArtemis)).Should(Succeed())
+
+				podName := activeMQArtemis.Name + "-ss-0"
+				// /home/jboss/amq-broker/bin/artemis check node --up --url 'tcp://aa-con-cer-man162a-ss-0:61617?sslEnabled=true&verifyHost=false&trustStoreType=PEMCFG&trustStorePath=/etc/secret-aa-con-cer-man162a-cert-secret-pemcfg/aa-con-cer-man162a-cert-secret.pemcfg'
+				command := []string{"/home/jboss/amq-broker/bin/artemis", "check", "node", "--up", "--url", "tcp://" + podName + ":61617?sslEnabled=true&verifyHost=false&trustStoreType=PEMCFG&trustStorePath=/etc/secret-" + activeMQArtemis.Name + "-cert-secret-pemcfg/" + activeMQArtemis.Name + "-cert-secret.pemcfg"}
+				Eventually(func(g Gomega) {
+					stdOutContent := ExecOnPod(podName, activeMQArtemis.Name, defaultNamespace, command, g)
+					g.Expect(stdOutContent).Should(ContainSubstring("Checks run: 1"))
+				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+				CleanResource(&activeMQArtemis, activeMQArtemis.Name, defaultNamespace)
+				CleanResource(&issuer, issuer.Name, defaultNamespace)
+				CleanResource(&cert, cert.Name, defaultNamespace)
+
+				certSecret := &corev1.Secret{}
+				//By default, cert-manager does not delete the Secret resource containing the signed certificate when the corresponding Certificate resource is deleted.
+				if k8sClient.Get(ctx, types.NamespacedName{Name: certSecretName, Namespace: defaultNamespace}, certSecret) == nil {
+					CleanResource(certSecret, certSecretName, defaultNamespace)
+				}
+			})
+		})
 	})
 })
 
