@@ -27,6 +27,10 @@ const (
 	Cert_annotation_key   = "cert-manager.io/issuer-name"
 	Bundle_annotation_key = "trust.cert-manager.io/hash"
 	Console_web_prefix    = "webconfig.bindings.artemis."
+
+	// Suffix of provided secrets that contain tls.crt and tls.key items in PEM format.
+	// Secrets with this suffix are not validated. It is useful for secrets created from annotations.
+	Cert_provided_secret_suffix = "cert-provided-secret"
 )
 
 var defaultKeyStorePassword = "password"
@@ -134,6 +138,10 @@ func (s *SslArguments) ToFlags() string {
 }
 
 func IsSecretFromCert(secret *corev1.Secret) (bool, bool) {
+	if strings.HasSuffix(secret.Name, Cert_provided_secret_suffix) {
+		return true, true
+	}
+
 	_, exist := secret.Annotations[Cert_annotation_key]
 	if len(secret.Data) < 2 {
 		return exist, false
