@@ -1488,7 +1488,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessResources(customResource
 			// not all types will have deltas
 			continue
 		}
-		reqLogger.V(1).Info("", "instances of ", resourceType, "deployed", len(reconciler.deployed[resourceType]), "requested", len(requested[resourceType]), "and delete", len(delta.Removed))
+		reqLogger.V(1).Info("", "instances of ", resourceType, "deployed", len(reconciler.deployed[resourceType]), "requested", len(requested[resourceType]))
 		reqLogger.V(1).Info("", "instances of ", resourceType, "Will create ", len(delta.Added), "update ", len(delta.Updated), "and delete", len(delta.Removed))
 
 		for index := range delta.Added {
