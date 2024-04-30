@@ -1419,20 +1419,27 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessResources(customResource
 
 	reqLogger := reconciler.log.WithValues("ActiveMQArtemis Name", customResource.Name)
 
-	for _, requested := range common.ToResourceList(reconciler.requestedResources) {
-		requested.SetNamespace(customResource.Namespace)
-		if err = reconciler.applyTemplates(requested); err != nil {
-			return err
+	requestedResourceList := common.ToResourceList(reconciler.requestedResources)
+
+	var currenCount int
+	for _, deployedResources := range reconciler.deployed {
+		currenCount += len(deployedResources)
+		for _, deployedResource := range deployedResources {
+			reqLogger.V(1).Info("Deployed resource", "type", reflect.TypeOf(deployedResource), "name", deployedResource.GetName())
 		}
 	}
 
-	var currenCount int
-	for index := range reconciler.deployed {
-		currenCount += len(reconciler.deployed[index])
+	for _, requestedResource := range requestedResourceList {
+		requestedResource.SetNamespace(customResource.Namespace)
+		if err = reconciler.applyTemplates(requestedResource); err != nil {
+			return err
+		}
+		reqLogger.V(1).Info("Requested resource", "type", reflect.TypeOf(requestedResource), "name", requestedResource.GetName())
 	}
-	reqLogger.V(1).Info("Processing resources", "num requested", len(reconciler.requestedResources), "num current", currenCount)
 
-	requested := compare.NewMapBuilder().Add(common.ToResourceList(reconciler.requestedResources)...).ResourceMap()
+	reqLogger.V(1).Info("Processing resources", "num requested", len(requestedResourceList), "num deployed", currenCount)
+
+	requested := compare.NewMapBuilder().Add(requestedResourceList...).ResourceMap()
 	comparator := compare.NewMapComparator()
 
 	comparator.Comparator.SetComparator(reflect.TypeOf(appsv1.StatefulSet{}), func(deployed, requested rtclient.Object) (isEqual bool) {
@@ -1482,6 +1489,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessResources(customResource
 			// not all types will have deltas
 			continue
 		}
+		reqLogger.V(1).Info("", "instances of ", resourceType, "deployed", len(reconciler.deployed[resourceType]), "requested", len(requested[resourceType]), "and delete", len(delta.Removed))
 		reqLogger.V(1).Info("", "instances of ", resourceType, "Will create ", len(delta.Added), "update ", len(delta.Updated), "and delete", len(delta.Removed))
 
 		for index := range delta.Added {
