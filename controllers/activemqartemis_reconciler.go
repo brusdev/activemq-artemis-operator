@@ -479,9 +479,6 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) appendSystemPropertiesForConsol
 
 func (reconciler *ActiveMQArtemisReconcilerImpl) syncMessageMigration(customResource *brokerv1beta1.ActiveMQArtemis, namer common.Namers, client rtclient.Client, scheme *runtime.Scheme) {
 
-	var err error = nil
-	var retrieveError error = nil
-
 	namespacedName := types.NamespacedName{
 		Name:      customResource.Name,
 		Namespace: customResource.Namespace,
@@ -521,28 +518,30 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) syncMessageMigration(customReso
 	}
 
 	clustered := isClustered(customResource)
+	scaledownRequired := clustered &&
+		*customResource.Spec.DeploymentPlan.MessageMigration &&
+		customResource.Spec.DeploymentPlan.PersistenceEnabled
 
-	if *customResource.Spec.DeploymentPlan.MessageMigration && clustered {
-		if !customResource.Spec.DeploymentPlan.PersistenceEnabled {
-			reconciler.log.V(2).Info("Won't set up scaledown for non persistent deployment")
-			return
-		}
-		reconciler.log.V(2).Info("we need scaledown for this cr", "crName", customResource.Name, "scheme", scheme)
-		if err = resources.Retrieve(namespacedName, client, scaledown); err != nil {
-			// err means not found so create
+	retrieveError := resources.Retrieve(namespacedName, client, scaledown)
+
+	if retrieveError == nil || k8serrors.IsNotFound(retrieveError) {
+		scaledownDeployed := retrieveError == nil
+
+		reconciler.log.V(1).Info("Check scaledown", "deployed", scaledownDeployed, "required", scaledownRequired)
+
+		if !scaledownDeployed && scaledownRequired {
 			reconciler.log.V(2).Info("Creating builtin drainer CR ", "scaledown", scaledown)
-			if retrieveError = resources.Create(customResource, client, scheme, scaledown); retrieveError == nil {
+			err := resources.Create(customResource, client, scheme, scaledown)
+			if err == nil {
 				reconciler.log.V(2).Info("drainer created successfully", "drainer", scaledown)
 			} else {
-				reconciler.log.Error(retrieveError, "we have error retrieving drainer", "drainer", scaledown, "scheme", scheme)
+				reconciler.log.Error(err, "error creating drainer", "drainer", scaledown, "scheme", scheme)
 			}
-		}
-	} else {
-		if err = resources.Retrieve(namespacedName, client, scaledown); err == nil {
-			//	ReleaseController(customResource.Name)
-			// err means not found so delete
+		} else if scaledownDeployed && !scaledownRequired {
 			resources.Delete(client, scaledown)
 		}
+	} else {
+		reconciler.log.Error(retrieveError, "error retrieving drainer", "drainer", scaledown, "scheme", scheme)
 	}
 }
 

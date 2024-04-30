@@ -547,14 +547,14 @@ func TestProcess_TemplateIncludesLabelsServiceAndSecret(t *testing.T) {
 	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
 
 	namer := MakeNamers(cr)
+	fakeClient := fake.NewClientBuilder().Build()
 
 	newSS, err := reconciler.ProcessStatefulSet(cr, *namer, nil)
 	reconciler.trackDesired(newSS)
 	assert.NoError(t, err)
 
-	reconciler.ProcessDeploymentPlan(cr, *namer, nil, nil, newSS)
+	reconciler.ProcessDeploymentPlan(cr, *namer, fakeClient, nil, newSS)
 
-	fakeClient := fake.NewClientBuilder().Build()
 	err = reconciler.ProcessResources(cr, fakeClient, nil)
 	assert.NoError(t, err)
 
@@ -626,11 +626,11 @@ func TestProcess_TemplateIncludesLabelsSecretRegexp(t *testing.T) {
 	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
 
 	namer := MakeNamers(cr)
+	fakeClient := fake.NewClientBuilder().Build()
 
 	newSS, _ := reconciler.ProcessStatefulSet(cr, *namer, nil)
-	reconciler.ProcessDeploymentPlan(cr, *namer, nil, nil, newSS)
+	reconciler.ProcessDeploymentPlan(cr, *namer, fakeClient, nil, newSS)
 
-	fakeClient := fake.NewClientBuilder().Build()
 	err := reconciler.ProcessResources(cr, fakeClient, nil)
 	assert.NoError(t, err)
 
@@ -680,11 +680,11 @@ func TestProcess_TemplateDuplicateKeyReplacesOk(t *testing.T) {
 	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
 
 	namer := MakeNamers(cr)
+	fakeClient := fake.NewClientBuilder().Build()
 
 	newSS, _ := reconciler.ProcessStatefulSet(cr, *namer, nil)
-	reconciler.ProcessDeploymentPlan(cr, *namer, nil, nil, newSS)
+	reconciler.ProcessDeploymentPlan(cr, *namer, fakeClient, nil, newSS)
 
-	fakeClient := fake.NewClientBuilder().Build()
 	err := reconciler.ProcessResources(cr, fakeClient, nil)
 	assert.NoError(t, err)
 
