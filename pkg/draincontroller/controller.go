@@ -490,9 +490,9 @@ func (c *Controller) processStatefulSet(sts *appsv1.StatefulSet) error {
 					return err
 				}
 
-				if !c.localOnly {
-					c.recorder.Event(sts, corev1.EventTypeNormal, SuccessCreate, fmt.Sprintf(MessageDrainPodCreated, podName, sts.Name))
-				}
+				//if !c.localOnly {
+				//	c.recorder.Event(sts, corev1.EventTypeNormal, SuccessCreate, fmt.Sprintf(MessageDrainPodCreated, podName, sts.Name))
+				//}
 
 				continue
 				//} else {
@@ -590,9 +590,9 @@ func (c *Controller) cleanUpDrainPodIfNeeded(sts *appsv1.StatefulSet, pod *corev
 	switch podPhase {
 	case (corev1.PodSucceeded):
 		c.log.V(1).Info("Drain pod " + podName + " finished.")
-		if !c.localOnly {
-			c.recorder.Event(sts, corev1.EventTypeNormal, DrainSuccess, fmt.Sprintf(MessageDrainPodFinished, podName, sts.Name))
-		}
+		//if !c.localOnly {
+		//	c.recorder.Event(sts, corev1.EventTypeNormal, DrainSuccess, fmt.Sprintf(MessageDrainPodFinished, podName, sts.Name))
+		//}
 
 		for _, pvcTemplate := range sts.Spec.VolumeClaimTemplates {
 			pvcName := getPVCName(sts, pvcTemplate.Name, int32(ordinal))
@@ -601,9 +601,9 @@ func (c *Controller) cleanUpDrainPodIfNeeded(sts *appsv1.StatefulSet, pod *corev
 			if err != nil {
 				return err
 			}
-			if !c.localOnly {
-				c.recorder.Event(sts, corev1.EventTypeNormal, PVCDeleteSuccess, fmt.Sprintf(MessagePVCDeleted, pvcName, sts.Name))
-			}
+			//if !c.localOnly {
+			//	c.recorder.Event(sts, corev1.EventTypeNormal, PVCDeleteSuccess, fmt.Sprintf(MessagePVCDeleted, pvcName, sts.Name))
+			//}
 		}
 
 		// TODO what if the user scales up the statefulset and the statefulset controller creates the new pod after we delete the pod but before we delete the PVC
@@ -614,9 +614,9 @@ func (c *Controller) cleanUpDrainPodIfNeeded(sts *appsv1.StatefulSet, pod *corev
 		if err != nil {
 			return err
 		}
-		if !c.localOnly {
-			c.recorder.Event(sts, corev1.EventTypeNormal, PodDeleteSuccess, fmt.Sprintf(MessageDrainPodDeleted, podName, sts.Name))
-		}
+		//if !c.localOnly {
+		//	c.recorder.Event(sts, corev1.EventTypeNormal, PodDeleteSuccess, fmt.Sprintf(MessageDrainPodDeleted, podName, sts.Name))
+		//}
 
 	case (corev1.PodFailed):
 		c.log.V(1).Info("Drain pod " + podName + " failed.")
