@@ -62,6 +62,10 @@ type ActiveMQArtemisSpec struct {
 	// Optional list of key=value properties that are applied to the broker configuration bean.
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Broker Properties"
 	BrokerProperties []string `json:"brokerProperties,omitempty"`
+	// Optional config that is applied to the broker configuration bean.
+	//+kubebuilder:pruning:PreserveUnknownFields
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="BrokerConfig"
+	BrokerConfig *unstructured.Unstructured `json:"brokerConfig,omitempty"`
 	// Optional list of environment variables to apply to the container(s), not exclusive
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Environment Variables"
 	Env []corev1.EnvVar `json:"env,omitempty"`

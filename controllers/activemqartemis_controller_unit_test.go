@@ -15,6 +15,7 @@ limitations under the License.
 package controllers
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -82,6 +83,47 @@ func TestValidateBrokerPropsDuplicate(t *testing.T) {
 	condition := meta.FindStatusCondition(cr.Status.Conditions, brokerv1beta1.ValidConditionType)
 	assert.Equal(t, condition.Reason, brokerv1beta1.ValidConditionFailedDuplicateBrokerPropertiesKey)
 	assert.True(t, strings.Contains(condition.Message, "min"))
+}
+
+func TestKeyValuePairsFromMap(t *testing.T) {
+
+	dataMap := map[string]interface{}{
+		"globalMaxSize":           "25K",
+		"gracefulShutdownEnabled": true,
+		"clusterConfigurations": map[string]interface{}{
+			"cc": map[string]interface{}{
+				"name":                     "cc",
+				"messageLoadBalancingType": "OFF_WITH_REDISTRIBUTION",
+			},
+		},
+		"addressConfigurations": map[string]interface{}{
+			"LB.TEST": map[string]interface{}{
+				"queueConfigs": map[string]interface{}{
+					"LB.TEST": map[string]interface{}{
+						"routingType": "ANYCAST",
+						"durable":     false,
+					},
+				},
+			},
+		},
+	}
+
+	keyValuePairs := []string{}
+	err := SortedKeyValuePairsFromMap(dataMap, &keyValuePairs)
+	assert.NoError(t, err)
+
+	dataBytes, err := json.Marshal(dataMap)
+	assert.NoError(t, err)
+
+	unmarshaledDataMap := map[string]interface{}{}
+	err = json.Unmarshal(dataBytes, &unmarshaledDataMap)
+	assert.NoError(t, err)
+
+	unmarshaledKeyValuePairs := []string{}
+	err = SortedKeyValuePairsFromMap(unmarshaledDataMap, &unmarshaledKeyValuePairs)
+	assert.NoError(t, err)
+
+	assert.Equal(t, keyValuePairs, unmarshaledKeyValuePairs)
 }
 
 func TestValidateBrokerPropsDuplicateOnFirstEquals(t *testing.T) {

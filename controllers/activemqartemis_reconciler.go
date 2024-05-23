@@ -2398,10 +2398,20 @@ func getConfigAppliedConfigMapName(artemis *brokerv1beta1.ActiveMQArtemis) types
 
 func (reconciler *ActiveMQArtemisReconcilerImpl) addResourceForBrokerProperties(customResource *brokerv1beta1.ActiveMQArtemis, namer common.Namers) (string, bool, map[string]string, error) {
 
+	var brokerProperties []string
+	if customResource.Spec.BrokerConfig != nil {
+		err := SortedKeyValuePairsFromMap(customResource.Spec.BrokerConfig.Object, &brokerProperties)
+		if err != nil {
+			return "", false, nil, err
+		}
+	} else {
+		brokerProperties = customResource.Spec.BrokerProperties
+	}
+
 	// fetch and do idempotent transform based on CR
 
 	// deal with upgrade to immutable secret, only upgrade to mutable on not found
-	alder32Bytes := alder32Of(customResource.Spec.BrokerProperties)
+	alder32Bytes := alder32Of(brokerProperties)
 	shaOfMap := hex.EncodeToString(alder32Bytes)
 	resourceName := types.NamespacedName{
 		Namespace: customResource.Namespace,
@@ -2426,7 +2436,17 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) addResourceForBrokerProperties(
 		desired = obj.(*corev1.Secret)
 	}
 
-	data := brokerPropertiesData(customResource.Spec.BrokerProperties)
+	var data map[string]string
+	if customResource.Spec.BrokerConfig != nil {
+		dataBytes, err := json.Marshal(customResource.Spec.BrokerConfig.Object)
+		if err != nil {
+			return "", false, nil, err
+		}
+
+		data = map[string]string{BrokerPropertiesName: string(dataBytes)}
+	} else {
+		data = brokerPropertiesData(brokerProperties)
+	}
 
 	if desired == nil {
 		reconciler.log.V(1).Info("desired brokerprop secret nil, create new one", "name", resourceName.Name)
@@ -3226,6 +3246,12 @@ func KeyValuePairs(data []byte) []string {
 	// need to skip white space and comments for checksum
 	keyValuePairs := []string{}
 
+	dataMap := map[string]interface{}{}
+	if err := json.Unmarshal(data, &dataMap); err == nil {
+		SortedKeyValuePairsFromMap(dataMap, &keyValuePairs)
+		return keyValuePairs
+	}
+
 	uniCodeDataLines := strings.Split(string(data), "\n")
 	for _, lineToTrim := range uniCodeDataLines {
 		line := strings.TrimLeftFunc(lineToTrim, unicode.IsSpace)
@@ -3236,6 +3262,34 @@ func KeyValuePairs(data []byte) []string {
 		keyValuePairs = appendNonEmpty(keyValuePairs, line)
 	}
 	return keyValuePairs
+}
+
+func SortedKeyValuePairsFromMap(dataMap map[string]interface{}, pairs *[]string) error {
+	err := KeyValuePairsFromMap("", dataMap, pairs)
+	if err != nil {
+		return err
+	}
+
+	sort.Slice(*pairs, func(i, j int) bool {
+		return (*pairs)[i] < (*pairs)[j]
+	})
+
+	return nil
+}
+
+func KeyValuePairsFromMap(parentKey string, dataMap map[string]interface{}, pairs *[]string) error {
+	for k, v := range dataMap {
+		if strings.Contains(k, ".") {
+			k = "\"" + k + "\""
+		}
+		propertyKey := parentKey + k
+		if reflect.ValueOf(v).Kind() == reflect.Map {
+			KeyValuePairsFromMap(propertyKey+".", v.(map[string]interface{}), pairs)
+		} else {
+			*pairs = append(*pairs, propertyKey+"="+fmt.Sprint(v))
+		}
+	}
+	return nil
 }
 
 func appendNonEmpty(propsKvs []string, data string) []string {
