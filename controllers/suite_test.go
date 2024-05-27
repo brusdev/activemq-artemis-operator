@@ -96,6 +96,7 @@ const (
 
 	// Default ingress domain for tests
 	defaultTestIngressDomain = "tests.artemiscloud.io"
+	otherTestIngressDomain   = "other.tests.artemiscloud.io"
 )
 
 var (

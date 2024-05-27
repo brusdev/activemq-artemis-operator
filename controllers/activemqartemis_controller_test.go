@@ -2460,6 +2460,33 @@ var _ = Describe("artemis controller", func() {
 
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
+			//Update the ingress domain
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, brokerKey, deployedCrd)).Should(Succeed())
+				deployedCrd.Spec.Acceptors[0].IngressHost = ""
+				deployedCrd.Spec.Connectors[0].IngressHost = ""
+				deployedCrd.Spec.IngressDomain = otherTestIngressDomain
+				g.Expect(k8sClient.Update(ctx, deployedCrd)).Should(Succeed())
+			}, timeout, interval).Should(Succeed())
+
+			By("check ingress is updated for console")
+			ingKey = types.NamespacedName{
+				Name:      brokerCr.Name + "-wconsj-0-svc-ing",
+				Namespace: defaultNamespace,
+			}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, ingKey, &ingress)).To(Succeed())
+
+				g.Expect(len(ingress.Spec.Rules)).To(Equal(1))
+				g.Expect(ingress.Spec.Rules[0].Host).To(ContainSubstring(otherTestIngressDomain))
+				g.Expect(len(ingress.Spec.Rules[0].HTTP.Paths)).To(BeEquivalentTo(1))
+				g.Expect(ingress.Spec.Rules[0].HTTP.Paths[0].Backend.Service.Name).To(BeEquivalentTo(brokerCr.Name + "-wconsj-0-svc"))
+				g.Expect(ingress.Spec.Rules[0].HTTP.Paths[0].Backend.Service.Port.Name).To(BeEquivalentTo("wconsj-0"))
+				g.Expect(ingress.Spec.Rules[0].HTTP.Paths[0].Path).To(BeEquivalentTo("/"))
+				g.Expect(*ingress.Spec.Rules[0].HTTP.Paths[0].PathType).To(BeEquivalentTo(netv1.PathTypePrefix))
+
+			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
 			CleanResource(createdBrokerCr, createdBrokerCr.Name, defaultNamespace)
 		})
 
@@ -2681,6 +2708,28 @@ var _ = Describe("artemis controller", func() {
 					g.Expect(route.Spec.Port.TargetPort).To(Equal(intstr.FromString("connector-0")))
 					g.Expect(route.Spec.To.Kind).To(Equal("Service"))
 					g.Expect(route.Spec.To.Name).To(Equal(brokerCr.Name + "-connector-0-svc"))
+				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+				//Update the ingress domain
+				brokerKey := types.NamespacedName{Name: brokerCr.Name, Namespace: brokerCr.Namespace}
+				deployedCrd := &brokerv1beta1.ActiveMQArtemis{}
+
+				Eventually(func(g Gomega) {
+					g.Expect(k8sClient.Get(ctx, brokerKey, deployedCrd)).Should(Succeed())
+					deployedCrd.Spec.IngressDomain = otherTestIngressDomain
+					g.Expect(k8sClient.Update(ctx, deployedCrd)).Should(Succeed())
+				}, timeout, interval).Should(Succeed())
+
+				routeKey = types.NamespacedName{
+					Name:      brokerCr.Name + "-wconsj-0-svc-rte",
+					Namespace: defaultNamespace,
+				}
+				Eventually(func(g Gomega) {
+					g.Expect(k8sClient.Get(ctx, routeKey, &route)).To(Succeed())
+					g.Expect(route.Spec.Host).To(ContainSubstring(otherTestIngressDomain))
+					g.Expect(route.Spec.Port.TargetPort).To(Equal(intstr.FromString("wconsj-0")))
+					g.Expect(route.Spec.To.Kind).To(Equal("Service"))
+					g.Expect(route.Spec.To.Name).To(Equal(brokerCr.Name + "-wconsj-0-svc"))
 				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 			} else {
 				brokerKey := types.NamespacedName{Name: brokerCr.Name, Namespace: brokerCr.Namespace}
