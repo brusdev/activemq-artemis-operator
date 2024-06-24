@@ -1001,6 +1001,9 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) applyTemplate(index int, templa
 				for k, v := range template.Patch.Object {
 					patch[k] = v
 				}
+
+				reconciler.applyFormattedPatchPatchMap(patch, ordinal, itemName, resType)
+
 				var patched strategicpatch.JSONMap
 				if patched, err = strategicpatch.StrategicMergeMapPatch(targetAsUnstructured, patch, target); err == nil {
 					err = converter.FromUnstructuredWithValidation(patched, target, true)
@@ -1012,6 +1015,16 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) applyTemplate(index int, templa
 		}
 	}
 	return nil
+}
+
+func (reconciler *ActiveMQArtemisReconcilerImpl) applyFormattedPatchPatchMap(patchMap map[string]interface{}, ordinal string, itemName string, resType string) {
+	for k, v := range patchMap {
+		if childMap, isChildMap := v.(map[string]interface{}); isChildMap {
+			reconciler.applyFormattedPatchPatchMap(childMap, ordinal, itemName, resType)
+		} else if strVal, isStr := v.(string); isStr {
+			patchMap[k] = formatTemplatedString(reconciler.customResource, strVal, ordinal, itemName, resType)
+		}
+	}
 }
 
 func (reconciler *ActiveMQArtemisReconcilerImpl) applyFormattedKeyValue(collection map[string]string, ordinal string, itemName string, resType string, key string, value string) {

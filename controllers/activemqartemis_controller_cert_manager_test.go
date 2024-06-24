@@ -189,7 +189,7 @@ var _ = Describe("artemis controller with cert manager test", Label("controller-
 			}
 
 			if isOpenshift {
-				Skip("Passthrough ingress resources with spec.tls are not supported on OpenShift")
+				//Skip("Passthrough ingress resources with spec.tls are not supported on OpenShift")
 			}
 
 			activeMQArtemis := generateArtemisSpec(defaultNamespace)
@@ -251,7 +251,7 @@ var _ = Describe("artemis controller with cert manager test", Label("controller-
 					SSLSecret:   certSecretName,
 					Expose:      true,
 					ExposeMode:  &brokerv1beta1.ExposeModes.Ingress,
-					IngressHost: ingressHost,
+					IngressHost: "$(BROKER_ORDINAL)." + ingressHost,
 				},
 			}
 			activeMQArtemis.Spec.ResourceTemplates = []brokerv1beta1.ResourceTemplate{
@@ -269,7 +269,7 @@ var _ = Describe("artemis controller with cert manager test", Label("controller-
 							"spec": map[string]interface{}{
 								"tls": []interface{}{
 									map[string]interface{}{
-										"hosts":      []string{ingressHost},
+										"hosts":      []string{"$(BROKER_ORDINAL)." + ingressHost},
 										"secretName": certSecretName,
 									},
 								},
@@ -280,6 +280,7 @@ var _ = Describe("artemis controller with cert manager test", Label("controller-
 			}
 
 			activeMQArtemis.Spec.DeploymentPlan.ExtraMounts.Secrets = []string{issuerCertSecretName}
+			activeMQArtemis.Spec.DeploymentPlan.Size = common.Int32ToPtr(2)
 
 			Expect(k8sClient.Create(ctx, &activeMQArtemis)).Should(Succeed())
 
@@ -287,7 +288,7 @@ var _ = Describe("artemis controller with cert manager test", Label("controller-
 			podName := activeMQArtemis.Name + "-ss-0"
 			trustStorePath := "/amq/extra/secrets/" + issuerCertSecretName + "/tls.crt"
 			checkCommandBeforeUpdating := []string{"/home/jboss/amq-broker/bin/artemis", "check", "node", "--up", "--url",
-				"tcp://" + podName + ":61617?sslEnabled=true&sniHost=" + ingressHost + "&trustStoreType=PEM&trustStorePath=" + trustStorePath}
+				"tcp://" + podName + ":61617?sslEnabled=true&sniHost=0." + ingressHost + "&trustStoreType=PEM&trustStorePath=" + trustStorePath}
 			Eventually(func(g Gomega) {
 				stdOutContent := ExecOnPod(podName, activeMQArtemis.Name, defaultNamespace, checkCommandBeforeUpdating, g)
 				g.Expect(stdOutContent).Should(ContainSubstring("Checks run: 1"))
@@ -304,7 +305,7 @@ var _ = Describe("artemis controller with cert manager test", Label("controller-
 				By("check acceptor is reachable")
 				Eventually(func(g Gomega) {
 					url := "amqps://" + clusterIngressHost + ":443"
-					connTLSConfig := amqp.ConnTLSConfig(&tls.Config{ServerName: ingressHost, RootCAs: roots})
+					connTLSConfig := amqp.ConnTLSConfig(&tls.Config{ServerName: "0." + ingressHost, RootCAs: roots})
 					client, err := amqp.Dial(url, amqp.ConnSASLPlain("dummy-user", "dummy-pass"), amqp.ConnTLS(true), connTLSConfig)
 					g.Expect(err).Should(BeNil())
 					g.Expect(client).ShouldNot(BeNil())
