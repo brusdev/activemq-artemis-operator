@@ -182,14 +182,14 @@ $ CERT_FOLDER=$(pwd)
 #### Start the broker
 
 ```{"stage":"deploy", "HereTag":"EOF", "runtime":"bash", "label":"deploy the broker", "env":["CLUSTER_IP"], "breakpoint":true}
-$ kubectl apply -f - << EOF
+$ cat << EOF >> /tmp/deploy.yml
 apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   name: send-receive
   namespace: send-receive-project
 spec:
-  ingressDomain: 192.168.49.2.nip.io
+  ingressDomain: ${CLUSTER_IP}.nip.io
   acceptors:
     - name: sslacceptor
       port: 62626
@@ -201,6 +201,10 @@ spec:
     - addressConfigurations."APP.JOBS".queueConfigs."APP.JOBS".routingType=ANYCAST
     - addressConfigurations."APP.COMMANDS".routingTypes=MULTICAST
 EOF
+```
+
+```{"stage":"deploy", "runtime":"bash"}
+$ kubectl apply -f /tmp/deploy.yml
 ```
 
 Wait for the Broker to be ready:
