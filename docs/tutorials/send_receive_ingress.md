@@ -19,7 +19,7 @@ running on your laptop will do fine.
 #### Start minikube with a parametrized dns domain name
 
 ```{"stage":"init", "id":"minikube_start"}
-$ minikube start --dns-domain='demo.artemiscloud.io'
+$ minikube start
 
 * minikube v1.32.0 on Fedora 39
 * Automatically selected the docker driver. Other choices: kvm2, qemu2, none, ssh
@@ -54,6 +54,12 @@ You can view the list of minikube maintainers at: https://github.com/kubernetes/
 $ minikube kubectl -- patch deployment -n ingress-nginx ingress-nginx-controller --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value":"--enable-ssl-passthrough"}]'
 
 deployment.apps/ingress-nginx-controller patched
+```
+
+#### Get minikube's ip
+
+```{"stage":"init", "variables":["CLUSTER_IP"], "runtime":"bash", "label":"get the cluster ip"}
+$ CLUSTER_IP=$(minikube ip)
 ```
 
 #### Make sure the domain of your cluster is resolvable
@@ -175,15 +181,15 @@ $ CERT_FOLDER=$(pwd)
 
 #### Start the broker
 
-```{"stage":"deploy", "HereTag":"EOF", "runtime":"bash", "label":"deploy the broker"}
-$ kubectl apply -f - <<EOF
+```{"stage":"deploy", "HereTag":"EOF", "runtime":"bash", "label":"deploy the broker", "env":["CLUSTER_IP"], "breakpoint":true}
+$ kubectl apply -f - << EOF
 apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   name: send-receive
   namespace: send-receive-project
 spec:
-  ingressDomain: demo.artemiscloud.io
+  ingressDomain: 192.168.49.2.nip.io
   acceptors:
     - name: sslacceptor
       port: 62626
@@ -195,8 +201,6 @@ spec:
     - addressConfigurations."APP.JOBS".queueConfigs."APP.JOBS".routingType=ANYCAST
     - addressConfigurations."APP.COMMANDS".routingTypes=MULTICAST
 EOF
-
-activemqartemis.broker.amq.io/send-receive created
 ```
 
 Wait for the Broker to be ready:
@@ -215,27 +219,6 @@ Check for the ingress availability:
 $ kubectl get ingress --show-labels
 NAME                                 CLASS   HOSTS                                                                     ADDRESS         PORTS     AGE   LABELS
 send-receive-sslacceptor-0-svc-ing   nginx   ing.sslacceptor.send-receive-0.send-receive-project.demo.artemiscloud.io  192.168.39.68   80, 443   18s   ActiveMQArtemis=send-receive,application=send-receive-app,statefulset.kubernetes.io/pod-name=send-receive-ss-0
-```
-
-#### Populate /etc/hosts
-
-Get the url for the ingress
-
-```{"stage":"etc", "variables":["INGRESS_URL"], "runtime":"bash", "label":"get the ingress host"}
-$ INGRESS_URL=$(kubectl get ingress send-receive-sslacceptor-0-svc-ing -o json | jq -r '.spec.rules[] | .host')
-```
-
-Get minikube's ip
-
-```{"stage":"etc", "variables":["CLUSTER_IP"], "runtime":"bash", "label":"get the cluster ip"}
-$ CLUSTER_IP=$(minikube ip)
-```
-Populate the `/etc/hosts` file with an entry for the ingress url:
-
-```{"stage":"etc", "env":["INGRESS_URL", "CLUSTER_IP"], "runtime":"bash", "label":"populate /etc/hosts", "id":"hosts_addition"}
-$ sudo echo "$CLUSTER_IP  $INGRESS_URL" | sudo tee -a /etc/hosts
-
-192.168.49.2  send-receive-sslacceptor-0-svc-ing-send-receive-project.demo.artemiscloud.io
 ```
 
 ### Exchanging messages between a producer and a consumer
@@ -337,8 +320,4 @@ $ minikube delete
 * Deleting container "minikube" ...
 * Removing /home/tlavocat/.minikube/machines/minikube ...
 * Removed all traces of the "minikube" cluster.
-```
-
-```{"stage":"teardown", "requires":"etc/hosts_addition"}
-$ sudo sed -i '$d' /etc/hosts
 ```

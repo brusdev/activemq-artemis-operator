@@ -19,7 +19,8 @@ running on your laptop will do fine.
 #### Start minikube with a parametrized dns domain name
 
 ```{"stage":"init", "id":"minikube_start"}
-$ minikube start --dns-domain='demo.artemiscloud.io'
+$ minikube start --profile tutorialtester
+$ minikube profile tutorialtester
 
 * minikube v1.32.0 on Fedora 39
 * Automatically selected the docker driver. Other choices: kvm2, qemu2, ssh, none
@@ -327,15 +328,24 @@ properties. Two queues are setup, one called `APP.JOBS` that is of type
 
 #### Apply the configuration and start the broker
 
-```{"stage":"deploy", "HereTag":"EOF", "runtime":"bash", "label":"deploy the broker"}
-$ kubectl apply -f - <<'EOF'
+Get minikube's ip
+
+```{"stage":"etc", "variables":["CLUSTER_IP"], "runtime":"bash", "label":"get the cluster ip"}
+$ CLUSTER_IP=$(minikube ip)
+```
+
+```{"stage":"deploy", "HereTag":"EOF", "runtime":"bash", "label":"deploy the broker", "env":["CLUSTER_IP"], "breakpoint":true}
+$ set -x
+$ cat <<EOF > deploy.yml
 apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   name: send-receive
   namespace: send-receive-project
 spec:
-  ingressDomain: demo.artemiscloud.io
+  ingressDomain: 192.168.49.2.nip.io
+EOF
+$ cat <<'EOF' >> deploy.yml
   acceptors:
     - name: sslacceptor
       port: 62626
@@ -362,6 +372,8 @@ spec:
     - addressConfigurations."APP.JOBS".queueConfigs."APP.JOBS".routingType=ANYCAST
     - addressConfigurations."APP.COMMANDS".routingTypes=MULTICAST
 EOF
+$ cat deploy.yml
+$ kubectl -v=10 apply -f deploy.yml
 
 activemqartemis.broker.amq.io/send-receive created
 ```
@@ -380,27 +392,6 @@ Check that the ingress is available and has an IP address:
 $ kubectl get ingress --show-labels
 NAME                                 CLASS   HOSTS                                                                     ADDRESS         PORTS     AGE   LABELS
 send-receive-sslacceptor-0-svc-ing   nginx   ing.sslacceptor.send-receive-0.send-receive-project.demo.artemiscloud.io  192.168.39.68   80, 443   18s   ActiveMQArtemis=send-receive,application=send-receive-app,statefulset.kubernetes.io/pod-name=send-receive-ss-0
-```
-
-#### Populate /etc/hosts
-
-Get the url for the ingress
-
-```{"stage":"etc", "variables":["INGRESS_URL"], "runtime":"bash", "label":"get the ingress host"}
-$ INGRESS_URL=$(kubectl get ingress send-receive-sslacceptor-0-svc-ing -o json | jq -r '.spec.rules[] | .host')
-```
-
-Get minikube's ip
-
-```{"stage":"etc", "variables":["CLUSTER_IP"], "runtime":"bash", "label":"get the cluster ip"}
-$ CLUSTER_IP=$(minikube ip)
-```
-Populate the `/etc/hosts` file with an entry for the ingress url:
-
-```{"stage":"etc", "env":["INGRESS_URL", "CLUSTER_IP"], "runtime":"bash", "label":"populate /etc/hosts", "id":"hosts_addition"}
-$ sudo echo "$CLUSTER_IP  $INGRESS_URL" | sudo tee -a /etc/hosts
-
-192.168.49.2  ing.sslacceptor.send-receive-0.send-receive-project.demo.artemiscloud.io
 ```
 
 ### Exchange messages between a producer and a consumer
@@ -428,10 +419,14 @@ $ wget --quiet https://dlcdn.apache.org/activemq/activemq-artemis/2.36.0/apache-
 $ tar -zxf apache-artemis-2.36.0-bin.tar.gz apache-artemis-2.36.0/
 ```
 
+```{"stage":"test_setup", "runtime":"bash", "variables":["BROKER_URL"], "label":"compute the broker url"}
+$ BROKER_URL='tcp://${INGRESS_URL}:443?sslEnabled=true&trustStorePath=/tmp/IssuerCA.pem&trustStoreType=PEM&useTopologyForLoadBalancing=false'
+```
+
 ##### Test the connection
 
-```{"stage":"test0", "rootdir":"$tmpdir.1/apache-artemis-2.36.0/bin/"}
-$ ./artemis check queue --name TEST --produce 10 --browse 10 --consume 10 --url 'tcp://ing.sslacceptor.send-receive-0.send-receive-project.demo.artemiscloud.io:443?sslEnabled=true&trustStorePath=/tmp/IssuerCA.pem&trustStoreType=PEM&useTopologyForLoadBalancing=false' --verbose
+```{"stage":"test0", "rootdir":"$tmpdir.1/apache-artemis-2.36.0/bin/", "runtime":"bash", "env":["BROKER_URL"], "label":"test connection"}
+$ ./artemis check queue --name TEST --produce 10 --browse 10 --consume 10 --url ${BROKER_URL} --verbose
 
 Executing org.apache.activemq.artemis.cli.commands.check.QueueCheck check queue --name TEST --produce 10 --browse 10 --consume 10 --url tcp://ing.sslacceptor.send-receive-0.send-receive-project.demo.artemiscloud.io:443?sslEnabled=true&trustStorePath=/tmp/IssuerCA.pem&trustStoreType=PEM&useTopologyForLoadBalancing=false --verbose 
 Home::/tmp/2200255537/apache-artemis-2.36.0, Instance::null
@@ -447,8 +442,8 @@ Checks run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.357 sec - Que
 
 For this use case, run first the producer, then the consumer.
 
-```{"stage":"test1", "rootdir":"$tmpdir.1/apache-artemis-2.36.0/bin/"}
-$ ./artemis producer --destination queue://APP.JOBS --url "tcp://ing.sslacceptor.send-receive-0.send-receive-project.demo.artemiscloud.io:443?sslEnabled=true&trustStorePath=/tmp/IssuerCA.pem&trustStoreType=PEM&useTopologyForLoadBalancing=false"
+```{"stage":"test1", "rootdir":"$tmpdir.1/apache-artemis-2.36.0/bin/", "runtime":"bash", "env":["BROKER_URL"], "label":"anycast: produce 1000 messages"}
+$ ./artemis producer --destination queue://APP.JOBS --url ${BROKER_URL}
 
 Connection brokerURL = tcp://ing.sslacceptor.send-receive-0.send-receive-project.demo.artemiscloud.io:443?sslEnabled=true&trustStorePath=/tmp/IssuerCA.pem&trustStoreType=PEM&useTopologyForLoadBalancing=false
 Producer ActiveMQQueue[APP.JOBS], thread=0 Started to calculate elapsed time ...
@@ -458,8 +453,8 @@ Producer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in second : 8 s
 Producer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in milli second : 8226 milli seconds
 ```
 
-```{"stage":"test1", "rootdir":"$tmpdir.1/apache-artemis-2.36.0/bin/"}
-$ ./artemis consumer --destination queue://APP.JOBS --url "tcp://ing.sslacceptor.send-receive-0.send-receive-project.demo.artemiscloud.io:443?sslEnabled=true&trustStorePath=/tmp/IssuerCA.pem&trustStoreType=PEM&useTopologyForLoadBalancing=false"
+```{"stage":"test1", "rootdir":"$tmpdir.1/apache-artemis-2.36.0/bin/", "runtime":"bash", "env":["BROKER_URL"], "label":"anycast: consume 1000 messages"}
+$ ./artemis consumer --destination queue://APP.JOBS --url ${BROKER_URL}
 
 Connection brokerURL = tcp://ing.sslacceptor.send-receive-0.send-receive-project.demo.artemiscloud.io:443?sslEnabled=true&trustStorePath=/tmp/IssuerCA.pem&trustStoreType=PEM&useTopologyForLoadBalancing=false
 Consumer:: filter = null
@@ -479,8 +474,8 @@ For this use case, run first the consumer(s), then the producer.
 
 1. in `n` other terminal(s) connect `n` consumer(s):
 
-```{"stage":"test2", "rootdir":"$tmpdir.1/apache-artemis-2.36.0/bin/", "parallel": true}
-$ ./artemis consumer --destination topic://APP.COMMANDS --url "tcp://ing.sslacceptor.send-receive-0.send-receive-project.demo.artemiscloud.io:443?sslEnabled=true&trustStorePath=/tmp/IssuerCA.pem&trustStoreType=PEM&useTopologyForLoadBalancing=false"
+```{"stage":"test2", "rootdir":"$tmpdir.1/apache-artemis-2.36.0/bin/", "parallel": true, "runtime":"bash", "env":["BROKER_URL"], "label":"multicast: consume 1000 messages"}
+$ ./artemis consumer --destination topic://APP.COMMANDS --url ${BROKER_URL}
 
 Connection brokerURL = tcp://ing.sslacceptor.send-receive-0.send-receive-project.demo.artemiscloud.io:443?sslEnabled=true&trustStorePath=/tmp/IssuerCA.pem&trustStoreType=PEM&useTopologyForLoadBalancing=false
 Consumer:: filter = null
@@ -495,9 +490,9 @@ Consumer ActiveMQTopic[APP.COMMANDS], thread=0 Consumer thread finished
 
 2. connect the producer to start broadcasting messages.
 
-```{"stage":"test2", "rootdir":"$tmpdir.1/apache-artemis-2.36.0/bin/", "parallel": true}
+```{"stage":"test2", "rootdir":"$tmpdir.1/apache-artemis-2.36.0/bin/", "parallel": true, "runtime":"bash", "env":["BROKER_URL"], "label":"multicast: produce 1000 messages"}
 $ sleep 5s
-$ ./artemis producer --destination topic://APP.COMMANDS --url "tcp://ing.sslacceptor.send-receive-0.send-receive-project.demo.artemiscloud.io:443?sslEnabled=true&trustStorePath=/tmp/IssuerCA.pem&trustStoreType=PEM&useTopologyForLoadBalancing=false"
+$ ./artemis producer --destination topic://APP.COMMANDS --url ${BROKER_URL}
 
 Connection brokerURL = tcp://ing.sslacceptor.send-receive-0.send-receive-project.demo.artemiscloud.io:443?sslEnabled=true&trustStorePath=/tmp/IssuerCA.pem&trustStoreType=PEM&useTopologyForLoadBalancing=false
 Producer ActiveMQTopic[APP.COMMANDS], thread=0 Started to calculate elapsed time ...
@@ -513,14 +508,10 @@ To leave a pristine environment after executing this tutorial you can simply,
 delete the minikube cluster and clean the `/etc/hosts` file.
 
 ```{"stage":"teardown", "requires":"init/minikube_start"}
-$ minikube delete
+$ minikube delete --profile tutorialtester
 
 * Deleting "minikube" in docker ...
 * Deleting container "minikube" ...
 * Removing /home/tlavocat/.minikube/machines/minikube ...
 * Removed all traces of the "minikube" cluster.
-```
-
-```{"stage":"teardown", "requires":"etc/hosts_addition"}
-$ sudo sed -i '$d' /etc/hosts
 ```

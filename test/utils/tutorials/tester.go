@@ -497,8 +497,8 @@ func runTutorial(tutorial string) error {
 			// If a chunk has a requirement on another chunk being executed successfully, find it and check its status
 			if chunk.Requires != "" {
 				reqStageName := strings.Split(chunk.Requires, "/")[0]
-				reqChunkName := strings.Split(chunk.Requires, "/")[1]
-				reqChunk := findChunkById(stages, reqStageName, reqChunkName)
+				reqChunkId := strings.Split(chunk.Requires, "/")[1]
+				reqChunk := findChunkById(stages, reqStageName, reqChunkId)
 				if reqChunk != nil {
 					// skip the chunk if its requirement didn't execute well
 					if reqChunk.ReturnCode != 0 {
@@ -579,7 +579,7 @@ func runTutorial(tutorial string) error {
 			}
 		}
 	}
-	if updateTutorials {
+	if updateTutorials && terminatingError == nil {
 		terminatingError = updateTutorial(tutorial, stages)
 		if terminatingError == nil {
 			os.Rename(path.Join(tutorials_root, tutorial+".out"), path.Join(tutorials_root, tutorial))

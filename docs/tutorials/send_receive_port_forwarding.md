@@ -19,7 +19,7 @@ running on your laptop will do fine.
 #### Start minikube with a parametrized dns domain name
 
 ```{"stage":"init", "id":"minikube_start"}
-$ minikube start --dns-domain='demo.artemiscloud.io'
+$ minikube start --profile tutorialtester
 
 * minikube v1.32.0 on Fedora 39
 * Automatically selected the docker driver. Other choices: kvm2, qemu2, none, ssh
@@ -198,7 +198,7 @@ To leave a pristine environment after executing this tutorial you can simply,
 delete the minikube cluster.
 
 ```{"stage":"teardown", "requires":"init/minikube_start"}
-$ minikube delete
+$ minikube delete --profile tutorialtester
 
 * Deleting "minikube" in docker ...
 * Deleting container "minikube" ...
