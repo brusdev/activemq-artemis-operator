@@ -1,0 +1,32 @@
+name: microshift
+
+env:
+  IMAGE_NAME: activemq-artemis-operator
+
+on:
+  workflow_dispatch:
+    inputs:
+      skipTests:
+        description: 'Skip Tests'
+        required: false
+        default: false
+        type: boolean
+      skipDOTests:
+        description: 'Skip DO Tests'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout microshift-installer
+        uses: actions/checkout@v4
+        with:
+          repository: thinkahead/microshift
+          path: microshift-installer
+      - name: Execute microshift-installer
+        run: ./microshift-installer/install-ubuntu22.04.sh
