@@ -2285,19 +2285,38 @@ func getConfigExtraMount(customResource *brokerv1beta1.ActiveMQArtemis, suffix s
 }
 
 func (reconciler *ActiveMQArtemisReconcilerImpl) configureStartupProbe(container *corev1.Container, probeFromCr *corev1.Probe) *corev1.Probe {
-
 	var startupProbe *corev1.Probe = container.StartupProbe
 	reconciler.log.V(1).Info("Configuring Startup Probe", "existing", startupProbe)
 
-	if probeFromCr != nil {
-		if startupProbe == nil {
-			startupProbe = &corev1.Probe{}
-		}
+	if startupProbe == nil {
+		startupProbe = &corev1.Probe{}
+	}
 
+	if probeFromCr != nil {
 		conditionallyApplyValuesToPreserveDefaults(startupProbe, probeFromCr)
-		startupProbe.ProbeHandler = probeFromCr.ProbeHandler
+
+		// not complete in this case!
+		if probeFromCr.GRPC == nil && probeFromCr.Exec == nil && probeFromCr.HTTPGet == nil && probeFromCr.TCPSocket == nil {
+			reconciler.log.V(1).Info("Adding default TCP check")
+			startupProbe.ProbeHandler = corev1.ProbeHandler{
+				TCPSocket: &corev1.TCPSocketAction{
+					Port: intstr.FromInt(TCPLivenessPort),
+				},
+			}
+		} else {
+			reconciler.log.V(1).Info("Using user provided Startup Probe Handler" + probeFromCr.ProbeHandler.String())
+			startupProbe.ProbeHandler = probeFromCr.ProbeHandler
+		}
 	} else {
-		startupProbe = nil
+		reconciler.log.V(1).Info("Creating Default Startup Probe")
+
+		startupProbe.PeriodSeconds = 3
+		startupProbe.FailureThreshold = 100
+		startupProbe.ProbeHandler = corev1.ProbeHandler{
+			TCPSocket: &corev1.TCPSocketAction{
+				Port: intstr.FromInt(TCPLivenessPort),
+			},
+		}
 	}
 
 	return startupProbe
