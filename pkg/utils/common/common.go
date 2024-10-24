@@ -840,8 +840,8 @@ func GetOperatorSecret(client rtclient.Client, secretName string) (*corev1.Secre
 	certKey := types.NamespacedName{Name: secretName, Namespace: operatorNamespace}
 	certSecret := corev1.Secret{}
 	if err := resources.Retrieve(certKey, client, &certSecret); err != nil {
-		ctrl.Log.V(1).Info("operator secret not found", "name", secretName, "err", err)
-		return nil, errors.Errorf("failed to get secret %s, %v", secretName, err)
+		ctrl.Log.V(1).Info("operator secret not found", "name", secretName, "namespace", operatorNamespace, "err", err)
+		return nil, errors.Errorf("failed to get secret %s/%s, %v", operatorNamespace, secretName, err)
 	}
 
 	return &certSecret, nil

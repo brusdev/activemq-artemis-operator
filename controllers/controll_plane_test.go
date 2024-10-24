@@ -29,6 +29,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -138,6 +139,12 @@ var _ = Describe("minimal", func() {
 					Kind: "ClusterIssuer",
 				}
 			})
+
+			Eventually(func(g Gomega) {
+				brokerCertSecret := corev1.Secret{}
+				brokerCertSecretKey := types.NamespacedName{Name: sharedOperandCertName, Namespace: defaultNamespace}
+				g.Expect(k8sClient.Get(ctx, brokerCertSecretKey, &brokerCertSecret)).Should(Succeed())
+			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
 			crd.Spec.Restricted = common.NewTrue()
 
