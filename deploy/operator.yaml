@@ -136,7 +136,7 @@ spec:
               fieldPath: metadata.namespace
         - name: ENABLE_WEBHOOKS
           value: "false"
-        image: quay.io/artemiscloud/activemq-artemis-operator:1.2.7
+        image: quay.io/brusdev/activemq-artemis-operator:1.2.7
         livenessProbe:
           httpGet:
             path: /healthz
