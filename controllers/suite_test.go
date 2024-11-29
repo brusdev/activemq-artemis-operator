@@ -143,6 +143,7 @@ var (
 
 	artemisGvk = schema.GroupVersionKind{Group: "broker", Version: "v1beta1", Kind: "ActiveMQArtemis"}
 
+	isFIPSEnabled                             = false
 	isOpenshift                               = false
 	isIngressSSLPassthroughEnabled            = false
 	verbose                                   = false
@@ -200,6 +201,15 @@ func setUpEnvTest() {
 
 	if isOpenshift {
 		kubeTool = "oc"
+	}
+
+	if isOpenshift {
+		clusterConfig := &corev1.ConfigMap{}
+		clusterConfigKey := types.NamespacedName{Name: "cluster-config-v1", Namespace: "kube-system"}
+		clusterConfigErr := k8sClient.Get(ctx, clusterConfigKey, clusterConfig)
+		if clusterConfigErr == nil {
+			isFIPSEnabled = strings.Contains(clusterConfig.Data["install-config"], "fips: true")
+		}
 	}
 
 	setUpIngress()
