@@ -162,9 +162,9 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) Process(customResource *brokerv
 		return err
 	}
 
-	reconciler.ProcessDeploymentPlan(customResource, namer, client, scheme, desiredStatefulSet)
-
 	reconciler.ProcessCredentials(customResource, namer, client, scheme, desiredStatefulSet)
+
+	reconciler.ProcessDeploymentPlan(customResource, namer, client, scheme, desiredStatefulSet)
 
 	err = reconciler.ProcessAcceptorsAndConnectors(customResource, namer, client, scheme, desiredStatefulSet)
 
