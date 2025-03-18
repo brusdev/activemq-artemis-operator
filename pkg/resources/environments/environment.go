@@ -3,46 +3,19 @@ package environments
 import (
 	"strconv"
 
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/random"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/secrets"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+	rtclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
 	NameEnvVar             = "AMQ_NAME"
 	NameEnvVarDefaultValue = "amq-broker"
 )
-
-// TODO: Remove this blatant hack
-var GLOBAL_AMQ_CLUSTER_USER string = ""
-var GLOBAL_AMQ_CLUSTER_PASSWORD string = ""
-
-type defaults struct {
-	AMQ_USER             string
-	AMQ_PASSWORD         string
-	AMQ_CLUSTER_USER     string
-	AMQ_CLUSTER_PASSWORD string
-}
-
-var Defaults defaults
-
-func init() {
-	if "" == Defaults.AMQ_USER {
-		Defaults.AMQ_USER = random.GenerateRandomString(8)
-	}
-	if "" == Defaults.AMQ_PASSWORD {
-		Defaults.AMQ_PASSWORD = random.GenerateRandomString(8)
-	}
-	if "" == Defaults.AMQ_CLUSTER_USER {
-		Defaults.AMQ_CLUSTER_USER = random.GenerateRandomString(8)
-		// TODO: remove this hack
-		GLOBAL_AMQ_CLUSTER_USER = Defaults.AMQ_CLUSTER_USER
-	}
-	if "" == Defaults.AMQ_CLUSTER_PASSWORD {
-		Defaults.AMQ_CLUSTER_PASSWORD = random.GenerateRandomString(8)
-		// TODO: remove this hack
-		GLOBAL_AMQ_CLUSTER_PASSWORD = Defaults.AMQ_CLUSTER_PASSWORD
-	}
-}
 
 func ResolveBrokerNameFromEnvs(envs []corev1.EnvVar, defaultValue string) string {
 	if len(envs) > 0 {
@@ -367,4 +340,46 @@ func Delete(containers []corev1.Container, envVarName string) {
 			}
 		}
 	}
+}
+
+func GetEnvVarValue(envVar *corev1.EnvVar, namespace *types.NamespacedName, client rtclient.Client, labels map[string]string) string {
+	var result string
+	if envVar.Value == "" {
+		result = GetEnvVarValueFromSecret(envVar.Name, envVar.ValueFrom, namespace, client, labels)
+	} else {
+		result = envVar.Value
+	}
+	return result
+}
+
+func GetEnvVarValueFromSecret(envName string, varSource *corev1.EnvVarSource, namespace *types.NamespacedName, client rtclient.Client, labels map[string]string) string {
+
+	reqLogger := ctrl.Log.WithValues("Namespace", namespace.Namespace, "Name", namespace.Name)
+
+	var result string = ""
+
+	secretName := varSource.SecretKeyRef.LocalObjectReference.Name
+	secretKey := varSource.SecretKeyRef.Key
+
+	namespacedName := types.NamespacedName{
+		Name:      secretName,
+		Namespace: namespace.Namespace,
+	}
+	// Attempt to retrieve the secret
+	stringDataMap := map[string]string{
+		envName: "",
+	}
+	theSecret := secrets.NewSecret(namespacedName, stringDataMap, labels)
+	var err error = nil
+	if err = resources.Retrieve(namespacedName, client, theSecret); err != nil {
+		if errors.IsNotFound(err) {
+			reqLogger.V(1).Info("Secret IsNotFound.", "Secret Name", secretName, "Key", secretKey)
+		}
+	} else {
+		elem, ok := theSecret.Data[envName]
+		if ok {
+			result = string(elem)
+		}
+	}
+	return result
 }

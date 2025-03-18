@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/environments"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/secrets"
 	ss "github.com/arkmq-org/activemq-artemis-operator/pkg/resources/statefulsets"
@@ -160,11 +159,11 @@ func resolveJolokiaRequestParams(namespace string,
 		envVars := (*containers)[0].Env
 		for _, oneVar := range envVars {
 			if !userDefined && oneVar.Name == "AMQ_USER" {
-				jolokiaUser = getEnvVarValue(&oneVar, &podNamespacedName, client, nil)
+				jolokiaUser = environments.GetEnvVarValue(&oneVar, &podNamespacedName, client, nil)
 			} else if !userDefined && oneVar.Name == "AMQ_PASSWORD" {
-				jolokiaPassword = getEnvVarValue(&oneVar, &podNamespacedName, client, nil)
+				jolokiaPassword = environments.GetEnvVarValue(&oneVar, &podNamespacedName, client, nil)
 			} else if oneVar.Name == "AMQ_CONSOLE_ARGS" {
-				consoleArgs := getEnvVarValue(&oneVar, &podNamespacedName, client, nil)
+				consoleArgs := environments.GetEnvVarValue(&oneVar, &podNamespacedName, client, nil)
 				if strings.Contains(consoleArgs, "--ssl") {
 					jolokiaProtocol = "https"
 				}
@@ -179,46 +178,4 @@ func resolveJolokiaRequestParams(namespace string,
 	}
 
 	return jolokiaUser, jolokiaPassword, jolokiaProtocol
-}
-
-func getEnvVarValue(envVar *corev1.EnvVar, namespace *types.NamespacedName, client rtclient.Client, labels map[string]string) string {
-	var result string
-	if envVar.Value == "" {
-		result = getEnvVarValueFromSecret(envVar.Name, envVar.ValueFrom, namespace, client, labels)
-	} else {
-		result = envVar.Value
-	}
-	return result
-}
-
-func getEnvVarValueFromSecret(envName string, varSource *corev1.EnvVarSource, namespace *types.NamespacedName, client rtclient.Client, labels map[string]string) string {
-
-	reqLogger := ctrl.Log.WithValues("Namespace", namespace.Namespace, "Name", namespace.Name)
-
-	var result string = ""
-
-	secretName := varSource.SecretKeyRef.LocalObjectReference.Name
-	secretKey := varSource.SecretKeyRef.Key
-
-	namespacedName := types.NamespacedName{
-		Name:      secretName,
-		Namespace: namespace.Namespace,
-	}
-	// Attempt to retrieve the secret
-	stringDataMap := map[string]string{
-		envName: "",
-	}
-	theSecret := secrets.NewSecret(namespacedName, stringDataMap, labels)
-	var err error = nil
-	if err = resources.Retrieve(namespacedName, client, theSecret); err != nil {
-		if errors.IsNotFound(err) {
-			reqLogger.V(1).Info("Secret IsNotFound.", "Secret Name", secretName, "Key", secretKey)
-		}
-	} else {
-		elem, ok := theSecret.Data[envName]
-		if ok {
-			result = string(elem)
-		}
-	}
-	return result
 }
