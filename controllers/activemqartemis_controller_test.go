@@ -6900,12 +6900,12 @@ var _ = Describe("artemis controller", func() {
 			crd := generateArtemisSpec(defaultNamespace)
 
 			crd.Spec.DeploymentPlan.LivenessProbe = &corev1.Probe{
-				InitialDelaySeconds: 1,
-				PeriodSeconds:       2,
+				InitialDelaySeconds: 6,
+				PeriodSeconds:       3,
 			}
 			crd.Spec.DeploymentPlan.ReadinessProbe = &corev1.Probe{
 				InitialDelaySeconds: 1,
-				PeriodSeconds:       2,
+				PeriodSeconds:       3,
 			}
 
 			// about 10s to 1, 30s for 5 on minikube

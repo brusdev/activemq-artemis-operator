@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,8 +58,17 @@ var _ = Describe("jdbc fast failover", func() {
 				dbName := "pdb"
 				var dbPort int32 = 5432
 
-				dbAppLables := map[string]string{"app": dbName}
 				db := appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      dbName,
+						Namespace: "default",
+					},
+				}
+				err := k8sClient.Delete(ctx, &db)
+				Expect(err == nil || errors.IsNotFound(err)).To(BeTrue())
+
+				dbAppLables := map[string]string{"app": dbName}
+				db = appsv1.Deployment{
 
 					TypeMeta: metav1.TypeMeta{Kind: "Deployment", APIVersion: "apps/v1"},
 					// into unrestricted "default" namespace as requires run as root
@@ -114,6 +124,15 @@ var _ = Describe("jdbc fast failover", func() {
 				Expect(k8sClient.Create(ctx, &db)).Should(Succeed())
 
 				dbService := corev1.Service{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      dbName,
+						Namespace: "default",
+					},
+				}
+				err = k8sClient.Delete(ctx, &dbService)
+				Expect(err == nil || errors.IsNotFound(err)).To(BeTrue())
+
+				dbService = corev1.Service{
 					TypeMeta:   metav1.TypeMeta{Kind: "Service", APIVersion: "core/v1"},
 					ObjectMeta: metav1.ObjectMeta{Name: dbName, Namespace: "default"},
 					Spec: corev1.ServiceSpec{
