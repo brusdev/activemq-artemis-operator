@@ -26,12 +26,14 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"log"
 	"math/big"
 	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
 	"path"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -96,6 +98,8 @@ func randString() string {
 }
 
 func CleanResourceWithTimeouts(res client.Object, name string, namespace string, cleanTimeout time.Duration, cleanInterval time.Duration) {
+	//batch.kubernetes.io/job-name: consumer
+
 	err := k8sClient.Delete(ctx, res)
 	if errors.IsNotFound(err) {
 		return
@@ -109,6 +113,34 @@ func CleanResourceWithTimeouts(res client.Object, name string, namespace string,
 		}
 		g.Expect(errors.IsNotFound(err)).To(BeTrue())
 	}, cleanTimeout, cleanInterval).Should(Succeed())
+
+	resType := reflect.ValueOf(res).Elem().Type()
+	jobType := reflect.TypeOf(oappsv1.Job{})
+
+	if resType == jobType {
+		// Define the label selector (replace with your label selector)
+		labelSelector := "app=my-app"
+
+		// Get the list of pods with the label selector
+		pods, err := clientset.CoreV1().Pods("default").List(context.TODO(), metav1.ListOptions{
+			LabelSelector: labelSelector,
+		})
+		if err != nil {
+			log.Fatalf("Failed to list pods: %v", err)
+		}
+
+		// Delete the selected pods
+		for _, pod := range pods.Items {
+			fmt.Printf("Deleting pod: %s\n", pod.Name)
+			err := clientset.CoreV1().Pods("default").Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
+			if err != nil {
+				fmt.Printf("Failed to delete pod %s: %v\n", pod.Name, err)
+			} else {
+				fmt.Printf("Successfully deleted pod: %s\n", pod.Name)
+			}
+		}
+
+	}
 }
 
 func CleanResource(res client.Object, name string, namespace string) {

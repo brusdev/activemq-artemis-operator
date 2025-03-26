@@ -335,7 +335,7 @@ var _ = Describe("work queue", func() {
 				)
 				Expect(k8sClient.Create(ctx, &consumers)).Should(Succeed())
 
-				// check JOBS queue exists
+				By("verifying queue JOBS exists")
 				checkJOBSQueueExists := func(metrics string) bool {
 					return strings.Contains(metrics, "artemis_routed_message_count{address=\"JOBS\",broker=\"amq-broker\",}")
 				}
