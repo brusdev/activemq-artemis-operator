@@ -285,7 +285,7 @@ var _ = Describe("work queue", func() {
 
 				By("verifying - messages flowing.. via routed_message_count")
 
-				metricsCheck := func(g Gomega, ordinal string, predicate func(metrics string) bool) bool {
+				metricsCheck := func(g Gomega, ordinal string, metricsPredicate func(metrics string) bool) bool {
 					pod := &corev1.Pod{}
 					podName := namer.CrToSS(createdBrokerCrd.Name) + "-" + ordinal
 					podNamespacedName := types.NamespacedName{Name: podName, Namespace: defaultNamespace}
@@ -312,7 +312,7 @@ var _ = Describe("work queue", func() {
 							fmt.Printf("%s\n", line)
 						}
 
-						if predicate(line) {
+						if metricsPredicate(line) {
 							return true
 						}
 					}
@@ -335,14 +335,14 @@ var _ = Describe("work queue", func() {
 				)
 				Expect(k8sClient.Create(ctx, &consumers)).Should(Succeed())
 
-				By("verifying queue JOBS exists")
-				checkJOBSQueueExists := func(metrics string) bool {
-					return strings.Contains(metrics, "artemis_routed_message_count{address=\"JOBS\",broker=\"amq-broker\",}")
+				By("verifying artemis_consumer_count metric on JOBS")
+				checkJOBSConsumerNonZero := func(metrics string) bool {
+					return strings.Contains(metrics, "artemis_consumer_count{address=\"JOBS\",broker=\"amq-broker\",queue=\"JOBS\",} ") && !strings.Contains(metrics, "} 0.0")
 				}
 				Eventually(func(g Gomega) {
 
-					g.Expect(metricsCheck(g, "0", checkJOBSQueueExists)).Should(Equal(true))
-					g.Expect(metricsCheck(g, "1", checkJOBSQueueExists)).Should(Equal(true))
+					g.Expect(metricsCheck(g, "0", checkJOBSConsumerNonZero)).Should(Equal(true))
+					g.Expect(metricsCheck(g, "1", checkJOBSConsumerNonZero)).Should(Equal(true))
 
 				}, existingClusterTimeout, existingClusterInterval*5).Should(Succeed())
 
@@ -356,12 +356,7 @@ var _ = Describe("work queue", func() {
 
 				By("verifying artemis_routed_message_count metric on JOBS")
 				checkJOBSRoutedNonZero := func(metrics string) bool {
-					if strings.Contains(metrics, "artemis_routed_message_count{address=\"JOBS\",broker=\"amq-broker\",}") {
-						if !strings.Contains(metrics, "} 0.0") {
-							return true
-						}
-					}
-					return false
+					return strings.Contains(metrics, "artemis_routed_message_count{address=\"JOBS\",broker=\"amq-broker\",}") && !strings.Contains(metrics, "} 0.0")
 				}
 				Eventually(func(g Gomega) {
 
