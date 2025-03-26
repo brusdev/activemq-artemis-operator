@@ -53,6 +53,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -115,14 +116,20 @@ func CleanResourceWithTimeouts(res client.Object, name string, namespace string,
 	}, cleanTimeout, cleanInterval).Should(Succeed())
 
 	resType := reflect.ValueOf(res).Elem().Type()
-	jobType := reflect.TypeOf(oappsv1.Job{})
+	jobType := reflect.TypeOf(batchv1.Job{})
 
 	if resType == jobType {
+		cfg, err := config.GetConfig()
+		Expect(err).To(BeNil())
+
+		clientset, err := kubernetes.NewForConfig(cfg)
+		Expect(err).To(BeNil())
+
 		// Define the label selector (replace with your label selector)
-		labelSelector := "app=my-app"
+		labelSelector := "batch.kubernetes.io/job-name=" + res.GetName()
 
 		// Get the list of pods with the label selector
-		pods, err := clientset.CoreV1().Pods("default").List(context.TODO(), metav1.ListOptions{
+		pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
 			LabelSelector: labelSelector,
 		})
 		if err != nil {
@@ -132,12 +139,7 @@ func CleanResourceWithTimeouts(res client.Object, name string, namespace string,
 		// Delete the selected pods
 		for _, pod := range pods.Items {
 			fmt.Printf("Deleting pod: %s\n", pod.Name)
-			err := clientset.CoreV1().Pods("default").Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
-			if err != nil {
-				fmt.Printf("Failed to delete pod %s: %v\n", pod.Name, err)
-			} else {
-				fmt.Printf("Successfully deleted pod: %s\n", pod.Name)
-			}
+			CleanResourceWithTimeouts(&pod, pod.GetName(), pod.GetNamespace(), cleanTimeout, cleanInterval)
 		}
 
 	}

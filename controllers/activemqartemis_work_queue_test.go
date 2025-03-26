@@ -331,7 +331,7 @@ var _ = Describe("work queue", func() {
 				consumers := jobTemplate(
 					"consumer",
 					int32(numConsumers),
-					[]string{"/bin/sh", "-c", "/opt/amq/bin/artemis consumer --silent --protocol=AMQP --user c --password passwd --url " + serviceUrl + " --message-count " + numMessagesToConsume + " --destination queue://JOBS"},
+					[]string{"/bin/sh", "-c", "/opt/amq/bin/artemis consumer --silent --protocol=AMQP --user c --password passwd --url " + serviceUrl + " --message-count " + numMessagesToConsume + " --destination queue://JOBS || (sleep 5 && exit 1)"},
 				)
 				Expect(k8sClient.Create(ctx, &consumers)).Should(Succeed())
 
@@ -350,7 +350,7 @@ var _ = Describe("work queue", func() {
 				producer := jobTemplate(
 					"producer",
 					1,
-					[]string{"/bin/sh", "-c", "/opt/amq/bin/artemis producer --silent --protocol=AMQP --user p --password passwd --url " + serviceUrl + " --message-count " + numMessagesToProduce + " --destination queue://JOBS; sleep 300"},
+					[]string{"/bin/sh", "-c", "/opt/amq/bin/artemis producer --silent --protocol=AMQP --user p --password passwd --url " + serviceUrl + " --message-count " + numMessagesToProduce + " --destination queue://JOBS || (sleep 5 && exit 1)"},
 				)
 				Expect(k8sClient.Create(ctx, &producer)).Should(Succeed())
 
@@ -381,8 +381,8 @@ var _ = Describe("work queue", func() {
 
 				}, existingClusterTimeout, existingClusterInterval*5).Should(Succeed())
 
-				CleanResource(&producer, producer.Name, defaultNamespace)
-				CleanResource(&consumers, consumers.Name, defaultNamespace)
+				CleanClusterResource(&producer, producer.Name, defaultNamespace)
+				CleanClusterResource(&consumers, consumers.Name, defaultNamespace)
 				CleanResource(createdBrokerCrd, brokerCrd.Name, defaultNamespace)
 				CleanResource(jaasSecret, jaasSecret.Name, defaultNamespace)
 				CleanResource(loggingConfigMap, loggingConfigMap.Name, defaultNamespace)
