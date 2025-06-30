@@ -36,10 +36,6 @@ rm -R ${dir}/crds/
 $YQ -i ".crds.apply=true" ${dir}/values.yaml
 $YQ -i ".crds.keep=true" ${dir}/values.yaml
 
-# resources
-$YQ -i '.controllerManager.manager.resources=null' ${dir}/values.yaml
-sed -i -z 's~name: manager~name: manager\n        resources: {{- toYaml .Values.controllerManager.manager.resources | nindent 10 }}~' ${dir}/templates/deployment.yaml
-
 # ENABLE_WEBHOOKS always false
 $YQ -i 'del(.controllerManager.manager.env.enableWebhooks)' ${dir}/values.yaml
 sed -i "s~.Values.controllerManager.manager.env.enableWebhooks~false~" ${dir}/templates/deployment.yaml

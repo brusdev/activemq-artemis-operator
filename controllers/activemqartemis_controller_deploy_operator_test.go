@@ -21,6 +21,7 @@ package controllers
 import (
 	"bytes"
 	"os"
+	"strconv"
 	"strings"
 
 	"bufio"
@@ -34,8 +35,24 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
+
+const dummyPythonScript = `
+from http.server import SimpleHTTPRequestHandler, HTTPServer
+class DummyHandler(SimpleHTTPRequestHandler):
+	def do_GET(self):
+		response_content = '{\"request\":{\"mbean\":\"org.apache.activemq.artemis:broker=\\\"0.0.0.0\\\"\",\"attribute\":\"Status\",\"type\":\"read\"},\"value\":\"{\\\"configuration\\\":{\\\"properties\\\":{\\\"broker.properties\\\":{\\\"alder32\\\":\\\"1\\\",\\\"fileAlder32\\\":\\\"1285359230\\\"}}},\\\"server\\\":{\\\"jaas\\\":{\\\"properties\\\":{}},\\\"state\\\":\\\"STARTED\\\",\\\"version\\\":\\\"2.42.0\\\",\\\"nodeId\\\":\\\"27d63164-aa5b-11f0-a502-cabd4cd943ed\\\",\\\"identity\\\":null,\\\"uptime\\\":\\\"1 minute\\\"}}\",\"status\":200}'.encode('utf-8');
+		self.send_response(200);
+		self.send_header('Content-type', 'application/json');
+		self.send_header('Content-Length', str(len(response_content)));
+		self.end_headers();
+		self.wfile.write(response_content);
+HTTPServer(('', 8161), DummyHandler).serve_forever()
+`
 
 var _ = Describe("artemis controller", Label("do"), func() {
 
@@ -244,6 +261,116 @@ var _ = Describe("artemis controller", Label("do"), func() {
 
 				uninstallOperator(false, restrictedNs)
 				deleteNamespace(restrictedNs, Default)
+				Expect(installOperator(nil, defaultNamespace)).To(Succeed())
+			}
+		})
+	})
+
+	Context("operator deployment in a temp namespace", Label("do-operator-slow"), func() {
+		It("create 1000 dummy brokers", func() {
+			if os.Getenv("DEPLOY_OPERATOR") == "true" {
+				tempNs := NextSpecResourceName()
+				uninstallOperator(false, defaultNamespace)
+				By("creating a temp namespace " + tempNs)
+				createNamespace(tempNs, nil)
+				Expect(installOperator(nil, tempNs)).To(Succeed())
+
+				By("checking operator deployment")
+				deployment := appsv1.Deployment{}
+				deploymentKey := types.NamespacedName{Name: depName, Namespace: tempNs}
+				Eventually(func(g Gomega) {
+					g.Expect(k8sClient.Get(ctx, deploymentKey, &deployment)).Should(Succeed())
+					g.Expect(deployment.Status.ReadyReplicas).Should(Equal(int32(1)))
+				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+				count := 1000
+				ssKind := "StatefulSet"
+				crNamePrefix := NextSpecResourceName()
+
+				for i := 0; i < count; i++ {
+					crName := crNamePrefix + "-" + strconv.Itoa(i)
+
+					By("deploy dummy broker with cr: " + crName)
+					cr := brokerv1beta1.ActiveMQArtemis{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "ActiveMQArtemis",
+							APIVersion: brokerv1beta1.GroupVersion.Identifier(),
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      crName,
+							Namespace: tempNs,
+						},
+						Spec: brokerv1beta1.ActiveMQArtemisSpec{
+							DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+								ReadinessProbe: &corev1.Probe{
+									ProbeHandler: corev1.ProbeHandler{
+										TCPSocket: &corev1.TCPSocketAction{
+											Port: intstr.IntOrString{
+												IntVal: 8161,
+											},
+										},
+									},
+								},
+							},
+							ResourceTemplates: []brokerv1beta1.ResourceTemplate{
+								{
+									Selector: &brokerv1beta1.ResourceSelector{Kind: &ssKind},
+									Patch: &unstructured.Unstructured{
+										Object: map[string]interface{}{
+											"kind": "StatefulSet",
+											"spec": map[string]interface{}{
+												"template": map[string]interface{}{
+													"spec": map[string]interface{}{
+														"initContainers": []interface{}{
+															map[string]interface{}{
+																"name":    crName + "-container-init",
+																"command": []interface{}{"/bin/bash"},
+																"args":    []interface{}{"-c", "echo 'Hello World'"},
+																"image":   "registry.access.redhat.com/ubi9/python-312-minimal:9.6",
+															},
+														},
+														"containers": []interface{}{
+															map[string]interface{}{
+																"name":    crName + "-container",
+																"command": []interface{}{"python3"},
+																"args":    []interface{}{"-c", dummyPythonScript},
+																"image":   "registry.access.redhat.com/ubi9/python-312-minimal:9.6",
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					}
+
+					Expect(k8sClient.Create(ctx, &cr)).Should(Succeed())
+				}
+
+				createdSs := &appsv1.StatefulSet{}
+				createdCr := &brokerv1beta1.ActiveMQArtemis{}
+
+				for i := 0; i < count; i++ {
+					crName := crNamePrefix + "-" + strconv.Itoa(i)
+
+					By("check dummy broker with cr: " + crName)
+					ssKey := types.NamespacedName{Name: namer.CrToSS(crName), Namespace: tempNs}
+					Eventually(func(g Gomega) {
+						g.Expect(k8sClient.Get(ctx, ssKey, createdSs)).Should(Succeed())
+					}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+					crKey := types.NamespacedName{Name: crName, Namespace: tempNs}
+					Eventually(func(g Gomega) {
+						g.Expect(k8sClient.Get(ctx, crKey, createdCr)).Should(Succeed())
+						g.Expect(meta.IsStatusConditionTrue(createdCr.Status.Conditions, brokerv1beta1.ValidConditionType)).Should(BeTrue())
+					}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+				}
+
+				uninstallOperator(false, tempNs)
+				deleteNamespace(tempNs, Default)
 				Expect(installOperator(nil, defaultNamespace)).To(Succeed())
 			}
 		})
