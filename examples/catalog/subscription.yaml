@@ -4,7 +4,7 @@ metadata:
   name: activemq-artemis-operator-subscription
   namespace: operators
 spec:
-  channel: upstream
+  channel: stable
   name: activemq-artemis-operator
   source: activemq-artemis-operator-source
   sourceNamespace: operators
