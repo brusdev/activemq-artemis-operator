@@ -3,9 +3,6 @@ name: CI
 env:
   IMAGE_NAME: activemq-artemis-operator
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  OPM_VERSION: v1.54.0
-  OPERATOR_SDK_VERSION: v1.28.0
-  YQ_VERSION: v4.46.1
 
 on:
   push:
@@ -42,7 +39,24 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
     steps:
+      - name: Set up env
+        run: |
+          echo "HOSTNAME=${HOSTNAME}" >> ${GITHUB_ENV}
+
+      - name: Set up Docker
+        uses: docker/setup-docker-action@v4
+        with:
+          daemon-config: |
+            {
+              "insecure-registries" : [ "${{env.HOSTNAME}}:5000" ]
+            }
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -59,6 +73,7 @@ jobs:
           cpus: 2
           memory: 4g
           addons: ingress
+          insecure-registry: ${{env.HOSTNAME}}:5000
 
       - name: Enable minikube ingress-nginx ssl-passthrough
         run: >
@@ -68,17 +83,13 @@ jobs:
         run: go mod tidy && git status && git diff-index --quiet HEAD --
 
       - name: Check generate files
-        run: make build && make generate-deploy && make bundle && git status && git diff-index --quiet HEAD --
-      
-      - name: Build and push catalog image to Minikube
-        # if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' && !inputs.skipCatalog }}
+        run: make build && make generate-deploy && make bundle && make catalog-generate && git status && git diff-index --quiet HEAD --
+
+      - name: Build and push catalog image
         run: |
-          make CATALOG_IMG=$IMAGE_NAME-catalog:dev.latest catalog-build
-          docker save --output $IMAGE_NAME-catalog.tar $IMAGE_NAME-catalog:dev.latest
-          minikube image load $IMAGE_NAME-catalog.tar
+          make CATALOG_IMG=${HOSTNAME}:5000/$IMAGE_NAME-catalog:dev.latest catalog-build catalog-push
      
       - name: Install olm and verify pod readiness
-        # if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' && !inputs.skipCatalog }}
         run: |
           ./bin/operator-sdk olm install
            echo "Waiting for OLM pods to be ready..."
@@ -86,16 +97,19 @@ jobs:
            minikube kubectl -- wait pod -l app=olm-operator --for=condition=Ready --namespace=olm --timeout=2m
 
       - name: Create and verify catalog source
-        # if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' && !inputs.skipCatalog }}
         run: |
-          sed "s~image:.*~image: localhost/$IMAGE_NAME-catalog:dev.latest~" examples/catalog/catalog-source.yaml | minikube kubectl -- create -f -
-          minikube kubectl -- wait catalogsource activemq-artemis-operator-source --for=jsonpath='{.status.connectionState.lastObservedState}'=READY --namespace=operators --timeout=5m
-          minikube kubectl -- wait pod -l olm.catalogSource=activemq-artemis-operator-source --for=condition=Ready --namespace=operators --timeout=3m
+          sed "s~image:.*~image: ${HOSTNAME}:5000/$IMAGE_NAME-catalog:dev.latest~" examples/catalog/catalog-source.yaml | minikube kubectl -- create -f -
+          minikube kubectl -- wait catalogsource activemq-artemis-operator-source --for=jsonpath='{.status.connectionState.lastObservedState}'=READY --namespace=operators --timeout=3m ||
+            minikube kubectl -- get catalogsource activemq-artemis-operator-source --namespace operators -o yaml
+          minikube kubectl -- wait pod -l olm.catalogSource=activemq-artemis-operator-source --for=condition=Ready --namespace=operators --timeout=3m ||
+            minikube kubectl -- describe pod -l olm.catalogSource=activemq-artemis-operator-source --namespace=operators
 
       - name: Create and verify subscription
-        # if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' && !inputs.skipCatalog }}
         run: |
           minikube kubectl -- create -f ./examples/catalog/subscription.yaml
-          minikube kubectl -- wait subscription activemq-artemis-operator-subscription --for=jsonpath='{.status.installplan.kind}'=InstallPlan --namespace=operators --timeout=3m
-          minikube kubectl -- wait installplan -l operators.coreos.com/activemq-artemis-operator.operators='' --for=condition=Installed --namespace=operators --timeout=3m
-          minikube kubectl -- wait pod -l name=activemq-artemis-operator --for=condition=Ready --namespace=operators --timeout=3m
+          minikube kubectl -- wait subscription activemq-artemis-operator-subscription --for=jsonpath='{.status.installplan.kind}'=InstallPlan --namespace=operators --timeout=3m ||
+            minikube kubectl -- get subscription activemq-artemis-operator-subscription --namespace=operators -o yaml
+          minikube kubectl -- wait installplan -l operators.coreos.com/activemq-artemis-operator.operators='' --for=condition=Installed --namespace=operators --timeout=3m ||
+            minikube kubectl -- get installplan -l operators.coreos.com/activemq-artemis-operator.operators='' --namespace=operators -o yaml
+          minikube kubectl -- wait pod -l name=activemq-artemis-operator --for=condition=Ready --namespace=operators --timeout=3m ||
+            minikube kubectl -- get pod -l name=activemq-artemis-operator --namespace=operators -o yaml
