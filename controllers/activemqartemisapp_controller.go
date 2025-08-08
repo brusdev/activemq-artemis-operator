@@ -309,6 +309,8 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(serv
 			}
 			for _, role := range addr.consumerRoles {
 				fmt.Fprintf(buf, "securityRoles.\"%s\".\"%s\".consume=true\n", name, consumerRole(role))
+				fmt.Fprintf(buf, "securityRoles.\"%s\".\"%s\".createAddress=true\n", name, consumerRole(role))
+				fmt.Fprintf(buf, "securityRoles.\"%s\".\"%s\".createNonDurableQueue=true\n", name, consumerRole(role))
 			}
 		}
 
