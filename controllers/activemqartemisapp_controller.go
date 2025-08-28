@@ -208,6 +208,7 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) findServiceWithCapacity(
 
 type AddressConfig struct {
 	senderRoles   map[string]string
+	consumerIds   map[string]string
 	consumerRoles map[string]string
 }
 
@@ -221,7 +222,7 @@ func newAddressTracker() *AddressTracker {
 }
 
 func (t *AddressTracker) newAddressConfig() AddressConfig {
-	return AddressConfig{senderRoles: map[string]string{}, consumerRoles: map[string]string{}}
+	return AddressConfig{senderRoles: map[string]string{}, consumerIds: map[string]string{}, consumerRoles: map[string]string{}}
 }
 
 func (t *AddressTracker) track(address *broker.AppAddressType) *AddressConfig {
@@ -282,6 +283,14 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(serv
 				entry.consumerRoles[role] = role
 			}
 
+			for _, address := range capability.SubscriberOf {
+				entry = addressTracker.track(&address)
+				entry.consumerRoles[role] = role
+				if address.WithId != "" {
+					entry.consumerIds[address.WithId] = address.WithId
+				}
+			}
+
 			for _, address := range capability.ProducerAndConsumerOf {
 				entry = addressTracker.track(&address)
 				entry.consumerRoles[role] = role
@@ -304,13 +313,19 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(serv
 		for name, addr := range addressTracker.multiCast {
 			fmt.Fprintf(buf, "addressConfigurations.\"%s\".routingTypes=MULTICAST\n", name)
 
+			for _, id := range addr.consumerIds {
+				// MQTT topic subscription queue
+				fmt.Fprintf(buf, "addressConfigurations.\"%s\".queueConfigs.\"%s.%s\".routingType=MULTICAST\n", name, id, name)
+				fmt.Fprintf(buf, "addressConfigurations.\"%s\".queueConfigs.\"%s.%s\".address=%s\n", name, id, name, name)
+			}
+
 			for _, role := range addr.senderRoles {
 				fmt.Fprintf(buf, "securityRoles.\"%s\".\"%s\".send=true\n", name, producerRole(role))
 			}
 			for _, role := range addr.consumerRoles {
 				fmt.Fprintf(buf, "securityRoles.\"%s\".\"%s\".consume=true\n", name, consumerRole(role))
-				fmt.Fprintf(buf, "securityRoles.\"%s\".\"%s\".createAddress=true\n", name, consumerRole(role))
-				fmt.Fprintf(buf, "securityRoles.\"%s\".\"%s\".createNonDurableQueue=true\n", name, consumerRole(role))
+				//fmt.Fprintf(buf, "securityRoles.\"%s\".\"%s\".createAddress=true\n", name, consumerRole(role))
+				//fmt.Fprintf(buf, "securityRoles.\"%s\".\"%s\".createNonDurableQueue=true\n", name, consumerRole(role))
 			}
 		}
 
@@ -483,6 +498,9 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) doMtlsAuthN(service *bro
 
 				// single identity role (userName) for mtls
 				if len(capability.ConsumerOf) > 0 {
+					fmt.Fprintf(rolesBuf, "%s=%s\n", consumerRole(userName), userName)
+				}
+				if len(capability.SubscriberOf) > 0 {
 					fmt.Fprintf(rolesBuf, "%s=%s\n", consumerRole(userName), userName)
 				}
 				if len(capability.ProducerOf) > 0 {

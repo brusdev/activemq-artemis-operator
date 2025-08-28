@@ -45,6 +45,7 @@ type AppAddressType struct {
 	// one of Name or QueueName is required
 	Name      string `json:"name,omitempty"`
 	QueueName string `json:"queuename,omitempty"`
+	WithId    string `json:"withId,omitempty"`
 }
 
 type AppCapabilityType struct {
@@ -55,6 +56,8 @@ type AppCapabilityType struct {
 	ProducerOf []AppAddressType `json:"producerof,omitempty"` // ProducerTo
 
 	ConsumerOf []AppAddressType `json:"consumerof,omitempty"` // ConsumerFrom/ConsumerOf
+
+	SubscriberOf []AppAddressType `json:"subscriberOf,omitempty"`
 
 	ProducerAndConsumerOf []AppAddressType `json:"producerandconsumerof,omitempty"`
 }

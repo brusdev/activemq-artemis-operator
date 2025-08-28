@@ -55,6 +55,8 @@ spec:
                             type: string
                           queuename:
                             type: string
+                          withId:
+                            type: string
                         type: object
                       type: array
                     producerandconsumerof:
@@ -64,6 +66,8 @@ spec:
                             description: one of Name or QueueName is required
                             type: string
                           queuename:
+                            type: string
+                          withId:
                             type: string
                         type: object
                       type: array
@@ -77,11 +81,25 @@ spec:
                             type: string
                           queuename:
                             type: string
+                          withId:
+                            type: string
                         type: object
                       type: array
                     role:
                       description: defaults to cr.Name
                       type: string
+                    subscriberOf:
+                      items:
+                        properties:
+                          name:
+                            description: one of Name or QueueName is required
+                            type: string
+                          queuename:
+                            type: string
+                          withId:
+                            type: string
+                        type: object
+                      type: array
                   type: object
                 type: array
               resources:

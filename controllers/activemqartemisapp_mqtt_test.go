@@ -229,7 +229,8 @@ var _ = Describe("artemis-service", func() {
 					Capabilities: []brokerv1beta1.AppCapabilityType{
 						{
 							// Role: appName, TODO respect role for mtls
-							ProducerAndConsumerOf: []brokerv1beta1.AppAddressType{{Name: "mytopic"}},
+							ProducerOf:   []brokerv1beta1.AppAddressType{{Name: "mytopic"}},
+							SubscriberOf: []brokerv1beta1.AppAddressType{{Name: "mytopic", WithId: "my-client"}},
 						},
 					},
 
@@ -327,6 +328,9 @@ var _ = Describe("artemis-service", func() {
 			}
 
 			Eventually(func(g Gomega) {
+				// /opt/amq/bin/artemis queue stat
+				//mosquitto_pub -h 127.0.0.1 -p 1883 -u guest -P guest -t mytopic -m 'test'
+				//mosquitto_sub -h 127.0.0.1 -p 1883 -u guest -P guest -t mytopic -i myclient
 				g.Expect(messageReceived).Should(BeTrue())
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
