@@ -45,7 +45,6 @@ type AppAddressType struct {
 	// one of Name or QueueName is required
 	Name      string `json:"name,omitempty"`
 	QueueName string `json:"queuename,omitempty"`
-	WithId    string `json:"withId,omitempty"`
 }
 
 type AppCapabilityType struct {

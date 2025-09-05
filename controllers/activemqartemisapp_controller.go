@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 
 	broker "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources"
@@ -208,7 +209,7 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) findServiceWithCapacity(
 
 type AddressConfig struct {
 	senderRoles   map[string]string
-	consumerIds   map[string]string
+	queueNames    map[string]string
 	consumerRoles map[string]string
 }
 
@@ -222,19 +223,28 @@ func newAddressTracker() *AddressTracker {
 }
 
 func (t *AddressTracker) newAddressConfig() AddressConfig {
-	return AddressConfig{senderRoles: map[string]string{}, consumerIds: map[string]string{}, consumerRoles: map[string]string{}}
+	return AddressConfig{senderRoles: map[string]string{}, queueNames: map[string]string{}, consumerRoles: map[string]string{}}
 }
 
 func (t *AddressTracker) track(address *broker.AppAddressType) *AddressConfig {
 
 	var trackerMap map[string]AddressConfig
 	var name string
+	var queueName string
 	if address.QueueName != "" {
 		trackerMap = t.anyCast
 		name = address.QueueName
 	} else {
 		trackerMap = t.multiCast
-		name = address.Name
+
+		sepIndex := strings.Index(address.Name, "::")
+
+		if sepIndex != -1 {
+			name = address.Name[:sepIndex]
+			queueName = address.Name[sepIndex+2:]
+		} else {
+			name = address.Name
+		}
 	}
 
 	var present bool
@@ -243,6 +253,11 @@ func (t *AddressTracker) track(address *broker.AppAddressType) *AddressConfig {
 		entry = t.newAddressConfig()
 		trackerMap[name] = entry
 	}
+
+	if queueName != "" {
+		entry.queueNames[queueName] = queueName
+	}
+
 	return &entry
 }
 
@@ -286,9 +301,6 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(serv
 			for _, address := range capability.SubscriberOf {
 				entry = addressTracker.track(&address)
 				entry.consumerRoles[role] = role
-				if address.WithId != "" {
-					entry.consumerIds[address.WithId] = address.WithId
-				}
 			}
 
 			for _, address := range capability.ProducerAndConsumerOf {
@@ -313,10 +325,9 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(serv
 		for name, addr := range addressTracker.multiCast {
 			fmt.Fprintf(buf, "addressConfigurations.\"%s\".routingTypes=MULTICAST\n", name)
 
-			for _, id := range addr.consumerIds {
-				// MQTT topic subscription queue
-				fmt.Fprintf(buf, "addressConfigurations.\"%s\".queueConfigs.\"%s.%s\".routingType=MULTICAST\n", name, id, name)
-				fmt.Fprintf(buf, "addressConfigurations.\"%s\".queueConfigs.\"%s.%s\".address=%s\n", name, id, name, name)
+			for _, queueName := range addr.queueNames {
+				fmt.Fprintf(buf, "addressConfigurations.\"%s\".queueConfigs.\"%s\".routingType=MULTICAST\n", name, queueName)
+				fmt.Fprintf(buf, "addressConfigurations.\"%s\".queueConfigs.\"%s\".address=%s\n", name, queueName, name)
 			}
 
 			for _, role := range addr.senderRoles {

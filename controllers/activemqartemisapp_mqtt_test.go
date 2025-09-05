@@ -230,7 +230,7 @@ var _ = Describe("artemis-service", func() {
 						{
 							// Role: appName, TODO respect role for mtls
 							ProducerOf:   []brokerv1beta1.AppAddressType{{Name: "mytopic"}},
-							SubscriberOf: []brokerv1beta1.AppAddressType{{Name: "mytopic", WithId: "my-client"}},
+							SubscriberOf: []brokerv1beta1.AppAddressType{{Name: "mytopic::my-client.mytopic"}},
 						},
 					},
 
@@ -270,7 +270,7 @@ var _ = Describe("artemis-service", func() {
 
 			//svc.NewServiceDefinitionForCR(types.NamespacedName{Namespace: defaultNamespace, Name: serviceName + "mqtt"}, k8sClient, "mqtt", DefaultServicePort, map[string]string{"ActiveMQArtemis": crd.Name}, labels, nil)
 			acceptorIngressHost := serviceName + "-" + defaultNamespace + "." + defaultTestIngressDomain
-			acceptorIngress := ingresses.NewIngressForCRWithSSL(nil, types.NamespacedName{Namespace: defaultNamespace, Name: serviceName}, nil, serviceName, "61616", true, defaultTestIngressDomain, acceptorIngressHost, false)
+			acceptorIngress := ingresses.NewIngressForCRWithSSL(nil, types.NamespacedName{Namespace: defaultNamespace, Name: serviceName}, nil, serviceName, "61616", true, defaultTestIngressDomain, acceptorIngressHost, isOpenshift)
 			Expect(k8sClient.Create(ctx, acceptorIngress)).Should(Succeed())
 
 			sharedOperandCertNameSecret, err := secrets.RetriveSecret(types.NamespacedName{Namespace: defaultNamespace, Name: sharedOperandCertName}, make(map[string]string), k8sClient)

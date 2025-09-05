@@ -55,8 +55,6 @@ spec:
                             type: string
                           queuename:
                             type: string
-                          withId:
-                            type: string
                         type: object
                       type: array
                     producerandconsumerof:
@@ -66,8 +64,6 @@ spec:
                             description: one of Name or QueueName is required
                             type: string
                           queuename:
-                            type: string
-                          withId:
                             type: string
                         type: object
                       type: array
@@ -81,8 +77,6 @@ spec:
                             type: string
                           queuename:
                             type: string
-                          withId:
-                            type: string
                         type: object
                       type: array
                     role:
@@ -95,8 +89,6 @@ spec:
                             description: one of Name or QueueName is required
                             type: string
                           queuename:
-                            type: string
-                          withId:
                             type: string
                         type: object
                       type: array
