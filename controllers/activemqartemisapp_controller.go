@@ -207,6 +207,7 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) findServiceWithCapacity(
 }
 
 type AddressConfig struct {
+	queueNames    map[string]string
 	senderRoles   map[string]string
 	consumerRoles map[string]string
 }
@@ -221,28 +222,28 @@ func newAddressTracker() *AddressTracker {
 }
 
 func (t *AddressTracker) newAddressConfig() AddressConfig {
-	return AddressConfig{senderRoles: map[string]string{}, consumerRoles: map[string]string{}}
+	return AddressConfig{queueNames: map[string]string{}, senderRoles: map[string]string{}, consumerRoles: map[string]string{}}
 }
 
-func (t *AddressTracker) track(address *broker.AppAddressType) *AddressConfig {
+func (t *AddressTracker) track(address *broker.AppAddressType) (*AddressConfig, error) {
 
 	var trackerMap map[string]AddressConfig
-	var name string
-	if address.QueueName != "" {
+	if address.RoutingType == "" || address.RoutingType == broker.RoutingTypeAnycast {
 		trackerMap = t.anyCast
-		name = address.QueueName
-	} else {
+	} else if address.RoutingType == broker.RoutingTypeMulticast {
 		trackerMap = t.multiCast
-		name = address.Name
+	} else {
+		return nil, fmt.Errorf("unknown routing type %s", address.RoutingType)
 	}
 
 	var present bool
 	var entry AddressConfig
-	if entry, present = trackerMap[name]; !present {
+	if entry, present = trackerMap[address.Name]; !present {
 		entry = t.newAddressConfig()
-		trackerMap[name] = entry
+		trackerMap[address.Name] = entry
 	}
-	return &entry
+
+	return &entry, nil
 }
 
 func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(service *broker.ActiveMQArtemisService) (err error) {
@@ -273,25 +274,37 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(serv
 			var entry *AddressConfig
 
 			for _, address := range capability.ProducerOf {
-				entry = addressTracker.track(&address)
+				entry, err = addressTracker.track(&address)
+				if err != nil {
+					return err
+				}
+
 				entry.senderRoles[role] = role
 			}
 
 			for _, address := range capability.ConsumerOf {
-				entry = addressTracker.track(&address)
-				entry.consumerRoles[role] = role
-			}
+				entry, err = addressTracker.track(&address)
+				if err != nil {
+					return err
+				}
 
-			for _, address := range capability.ProducerAndConsumerOf {
-				entry = addressTracker.track(&address)
 				entry.consumerRoles[role] = role
-				entry.senderRoles[role] = role
+
+				if address.QueueName != "" {
+					entry.queueNames[address.QueueName] = address.QueueName
+				} else {
+					entry.queueNames[address.Name] = address.Name
+				}
 			}
 		}
 
 		for name, addr := range addressTracker.anyCast {
 			fmt.Fprintf(buf, "addressConfigurations.\"%s\".routingTypes=ANYCAST\n", name)
-			fmt.Fprintf(buf, "addressConfigurations.\"%s\".queueConfigs.\"%s\".routingType=ANYCAST\n", name, name)
+
+			for queueName := range addr.queueNames {
+				fmt.Fprintf(buf, "addressConfigurations.\"%s\".queueConfigs.\"%s\".address=%s\n", name, queueName, name)
+				fmt.Fprintf(buf, "addressConfigurations.\"%s\".queueConfigs.\"%s\".routingType=ANYCAST\n", name, queueName)
+			}
 
 			for _, role := range addr.senderRoles {
 				fmt.Fprintf(buf, "securityRoles.\"%s\".\"%s\".send=true\n", name, producerRole(role))
@@ -303,6 +316,11 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(serv
 
 		for name, addr := range addressTracker.multiCast {
 			fmt.Fprintf(buf, "addressConfigurations.\"%s\".routingTypes=MULTICAST\n", name)
+
+			for queueName := range addr.queueNames {
+				fmt.Fprintf(buf, "addressConfigurations.\"%s\".queueConfigs.\"%s\".address=%s\n", name, queueName, name)
+				fmt.Fprintf(buf, "addressConfigurations.\"%s\".queueConfigs.\"%s\".routingType=MULTICAST\n", name, queueName)
+			}
 
 			for _, role := range addr.senderRoles {
 				fmt.Fprintf(buf, "securityRoles.\"%s\".\"%s\".send=true\n", name, producerRole(role))
@@ -351,25 +369,25 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) verifyCapabilityAddressT
 
 		for index, address := range capability.ProducerOf {
 
-			if address.Name == "" && address.QueueName == "" {
-				err = fmt.Errorf("Spec.Capability.ProducerOf[%d] address must specify name or queue name %v", index, err)
+			if address.Name == "" {
+				err = fmt.Errorf("Spec.Capability.ProducerOf[%d] address must specify name %v", index, err)
+				break
+			} else if address.RoutingType != "" && address.RoutingType != broker.RoutingTypeAnycast && address.RoutingType != broker.RoutingTypeMulticast {
+				err = fmt.Errorf("Spec.Capability.ProducerOf[%d] address has invalid routingType %s", index, address.RoutingType)
 				break
 			}
 		}
 		if err == nil {
 			for index, address := range capability.ConsumerOf {
 
-				if address.Name == "" && address.QueueName == "" {
-					err = fmt.Errorf("Spec.Capability.ConsumerOf[%d] address must specify name or queue name %v", index, err)
+				if address.Name == "" {
+					err = fmt.Errorf("Spec.Capability.ConsumerOf[%d] address must specify name %v", index, err)
 					break
-				}
-			}
-		}
-		if err == nil {
-			for index, address := range capability.ProducerAndConsumerOf {
-
-				if address.Name == "" && address.QueueName == "" {
-					err = fmt.Errorf("Spec.Capability.ProducerAndConsumerOf[%d] address must specify name or queue name %v", index, err)
+				} else if address.RoutingType != "" && address.RoutingType != broker.RoutingTypeAnycast && address.RoutingType != broker.RoutingTypeMulticast {
+					err = fmt.Errorf("Spec.Capability.ConsumerOf[%d] address has invalid routingType %s", index, address.RoutingType)
+					break
+				} else if address.RoutingType == broker.RoutingTypeMulticast && address.QueueName == "" {
+					err = fmt.Errorf("Spec.Capability.ConsumerOf[%d] address must specify queueName for multicast routingType", index)
 					break
 				}
 			}
@@ -484,10 +502,6 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) doMtlsAuthN(service *bro
 					fmt.Fprintf(rolesBuf, "%s=%s\n", consumerRole(userName), userName)
 				}
 				if len(capability.ProducerOf) > 0 {
-					fmt.Fprintf(rolesBuf, "%s=%s\n", producerRole(userName), userName)
-				}
-				if len(capability.ProducerAndConsumerOf) > 0 {
-					fmt.Fprintf(rolesBuf, "%s=%s\n", consumerRole(userName), userName)
 					fmt.Fprintf(rolesBuf, "%s=%s\n", producerRole(userName), userName)
 				}
 			}

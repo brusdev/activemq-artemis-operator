@@ -266,7 +266,8 @@ var _ = Describe("artemis-service", func() {
 					Capabilities: []brokerv1beta1.AppCapabilityType{
 						{
 							// Role: appName, TODO respect role for mtls
-							ProducerAndConsumerOf: []brokerv1beta1.AppAddressType{{QueueName: "APP.JOBS"}},
+							ProducerOf: []brokerv1beta1.AppAddressType{{Name: "APP.JOBS"}},
+							ConsumerOf: []brokerv1beta1.AppAddressType{{Name: "APP.JOBS"}},
 						},
 					},
 
@@ -469,7 +470,7 @@ var _ = Describe("artemis-service", func() {
 				createdApp.Spec.Capabilities = append(createdApp.Spec.Capabilities, brokerv1beta1.AppCapabilityType{
 					ProducerOf: []brokerv1beta1.AppAddressType{
 						{
-							QueueName: "brian",
+							Name: "brian",
 						},
 					},
 				})

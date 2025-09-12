@@ -51,20 +51,18 @@ spec:
                       items:
                         properties:
                           name:
-                            description: one of Name or QueueName is required
                             type: string
                           queueName:
                             type: string
-                        type: object
-                      type: array
-                    producerAndConsumerOf:
-                      items:
-                        properties:
-                          name:
-                            description: one of Name or QueueName is required
+                          routingType:
+                            description: RoutingType defines the routing behavior
+                              for addresses
+                            enum:
+                            - multicast
+                            - anycast
                             type: string
-                          queueName:
-                            type: string
+                        required:
+                        - name
                         type: object
                       type: array
                     producerOf:
@@ -73,10 +71,18 @@ spec:
                       items:
                         properties:
                           name:
-                            description: one of Name or QueueName is required
                             type: string
                           queueName:
                             type: string
+                          routingType:
+                            description: RoutingType defines the routing behavior
+                              for addresses
+                            enum:
+                            - multicast
+                            - anycast
+                            type: string
+                        required:
+                        - name
                         type: object
                       type: array
                     role:

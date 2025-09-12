@@ -21,6 +21,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// RoutingType defines the routing behavior for addresses
+type RoutingType string
+
+const (
+	// RoutingTypeMulticast delivers messages to all subscribed consumers (topic semantics)
+	RoutingTypeMulticast RoutingType = "multicast"
+	// RoutingTypeAnycast delivers messages to one consumer in a load-balanced fashion (queue semantics)
+	RoutingTypeAnycast RoutingType = "anycast"
+)
+
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
@@ -42,9 +52,10 @@ type ActiveMQArtemisAppSpec struct {
 }
 
 type AppAddressType struct {
-	// one of Name or QueueName is required
-	Name      string `json:"name,omitempty"`
+	Name      string `json:"name"`
 	QueueName string `json:"queueName,omitempty"`
+	//+kubebuilder:validation:Enum=multicast;anycast
+	RoutingType RoutingType `json:"routingType,omitempty"`
 }
 
 type AppCapabilityType struct {
@@ -55,8 +66,6 @@ type AppCapabilityType struct {
 	ProducerOf []AppAddressType `json:"producerOf,omitempty"`
 
 	ConsumerOf []AppAddressType `json:"consumerOf,omitempty"`
-
-	ProducerAndConsumerOf []AppAddressType `json:"producerAndConsumerOf,omitempty"`
 }
 
 type ActiveMQArtemisAppStatus struct {
