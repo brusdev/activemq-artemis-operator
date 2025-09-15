@@ -230,7 +230,7 @@ var _ = Describe("artemis-service", func() {
 						{
 							// Role: appName, TODO respect role for mtls
 							ProducerOf: []brokerv1beta1.AppAddressType{{Name: "mytopic"}},
-							ConsumerOf: []brokerv1beta1.AppAddressType{{Name: "mytopic", QueueName: "my-client.mytopic", RoutingType: brokerv1beta1.RoutingTypeMulticast}},
+							ConsumerOf: []brokerv1beta1.AppAddressType{{Name: "mytopic::my-client.mytopic"}},
 						},
 					},
 

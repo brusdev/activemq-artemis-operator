@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 
 	broker "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources"
@@ -225,22 +226,33 @@ func (t *AddressTracker) newAddressConfig() AddressConfig {
 	return AddressConfig{queueNames: map[string]string{}, senderRoles: map[string]string{}, consumerRoles: map[string]string{}}
 }
 
-func (t *AddressTracker) track(address *broker.AppAddressType) (*AddressConfig, error) {
+func (t *AddressTracker) track(address *broker.AppAddressType, isConsumer bool) (*AddressConfig, error) {
 
 	var trackerMap map[string]AddressConfig
-	if address.RoutingType == "" || address.RoutingType == broker.RoutingTypeAnycast {
-		trackerMap = t.anyCast
-	} else if address.RoutingType == broker.RoutingTypeMulticast {
+	var addressName string = address.Name
+	var queueName string = address.Name
+	trackerMap = t.anyCast
+
+	if strings.Contains(address.Name, "::") {
 		trackerMap = t.multiCast
-	} else {
-		return nil, fmt.Errorf("unknown routing type %s", address.RoutingType)
+
+		nameParts := strings.Split(address.Name, "::")
+		if len(nameParts) != 2 {
+			return nil, fmt.Errorf("invalid name %s, fqqn must be of the form addressName::queueName", address.Name)
+		}
+		addressName = nameParts[0]
+		queueName = nameParts[1]
 	}
 
 	var present bool
 	var entry AddressConfig
-	if entry, present = trackerMap[address.Name]; !present {
+	if entry, present = trackerMap[addressName]; !present {
 		entry = t.newAddressConfig()
-		trackerMap[address.Name] = entry
+		trackerMap[addressName] = entry
+	}
+
+	if isConsumer {
+		entry.queueNames[queueName] = queueName
 	}
 
 	return &entry, nil
@@ -274,7 +286,7 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(serv
 			var entry *AddressConfig
 
 			for _, address := range capability.ProducerOf {
-				entry, err = addressTracker.track(&address)
+				entry, err = addressTracker.track(&address, false)
 				if err != nil {
 					return err
 				}
@@ -283,18 +295,12 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(serv
 			}
 
 			for _, address := range capability.ConsumerOf {
-				entry, err = addressTracker.track(&address)
+				entry, err = addressTracker.track(&address, true)
 				if err != nil {
 					return err
 				}
 
 				entry.consumerRoles[role] = role
-
-				if address.QueueName != "" {
-					entry.queueNames[address.QueueName] = address.QueueName
-				} else {
-					entry.queueNames[address.Name] = address.Name
-				}
 			}
 		}
 
@@ -372,9 +378,6 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) verifyCapabilityAddressT
 			if address.Name == "" {
 				err = fmt.Errorf("Spec.Capability.ProducerOf[%d] address must specify name %v", index, err)
 				break
-			} else if address.RoutingType != "" && address.RoutingType != broker.RoutingTypeAnycast && address.RoutingType != broker.RoutingTypeMulticast {
-				err = fmt.Errorf("Spec.Capability.ProducerOf[%d] address has invalid routingType %s", index, address.RoutingType)
-				break
 			}
 		}
 		if err == nil {
@@ -382,12 +385,6 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) verifyCapabilityAddressT
 
 				if address.Name == "" {
 					err = fmt.Errorf("Spec.Capability.ConsumerOf[%d] address must specify name %v", index, err)
-					break
-				} else if address.RoutingType != "" && address.RoutingType != broker.RoutingTypeAnycast && address.RoutingType != broker.RoutingTypeMulticast {
-					err = fmt.Errorf("Spec.Capability.ConsumerOf[%d] address has invalid routingType %s", index, address.RoutingType)
-					break
-				} else if address.RoutingType == broker.RoutingTypeMulticast && address.QueueName == "" {
-					err = fmt.Errorf("Spec.Capability.ConsumerOf[%d] address must specify queueName for multicast routingType", index)
 					break
 				}
 			}

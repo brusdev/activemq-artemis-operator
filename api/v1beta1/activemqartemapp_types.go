@@ -52,10 +52,7 @@ type ActiveMQArtemisAppSpec struct {
 }
 
 type AppAddressType struct {
-	Name      string `json:"name"`
-	QueueName string `json:"queueName,omitempty"`
-	//+kubebuilder:validation:Enum=multicast;anycast
-	RoutingType RoutingType `json:"routingType,omitempty"`
+	Name string `json:"name"`
 }
 
 type AppCapabilityType struct {
