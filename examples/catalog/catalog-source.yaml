@@ -1,7 +1,7 @@
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
-  name: activemq-artemis-operator-source
+  name: arkmq-broker-operator-catalog-source
   namespace: operators
 spec:
   displayName: ActiveMQ Artemis Operators

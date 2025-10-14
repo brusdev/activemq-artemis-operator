@@ -177,26 +177,25 @@ jobs:
       - name: Install olm and verify pod readiness
         run: |
           ./bin/operator-sdk olm install
-
-           echo "Waiting for OLM pods to be ready..."
-           minikube kubectl -- wait pod -l app=catalog-operator --for=condition=Ready --namespace=olm --timeout=2m
-           minikube kubectl -- wait pod -l app=olm-operator --for=condition=Ready --namespace=olm --timeout=2m
+          echo "Waiting for OLM pods to be ready..."
+          minikube kubectl -- wait pod -l app=catalog-operator --for=condition=Ready --namespace=olm --timeout=2m
+          minikube kubectl -- wait pod -l app=olm-operator --for=condition=Ready --namespace=olm --timeout=2m
 
       - name: Create and verify catalog source
         run: |
           sed "s~image:.*~image: ${HOSTNAME}:5000/$IMAGE_NAME-catalog:dev.latest~" examples/catalog/catalog-source.yaml | minikube kubectl -- create -f -
-          minikube kubectl -- wait catalogsource activemq-artemis-operator-source --for=jsonpath='{.status.connectionState.lastObservedState}'=READY --namespace=operators --timeout=3m ||
-          minikube kubectl -- get catalogsource activemq-artemis-operator-source --namespace operators -o yaml
-          minikube kubectl -- wait pod -l olm.catalogSource=activemq-artemis-operator-source --for=condition=Ready --namespace=operators --timeout=3m ||
-          minikube kubectl -- describe pod -l olm.catalogSource=activemq-artemis-operator-source --namespace=operators
+          minikube kubectl -- wait catalogsource arkmq-broker-operator-catalog-source --for=jsonpath='{.status.connectionState.lastObservedState}'=READY --namespace=operators --timeout=3m ||
+          minikube kubectl -- get catalogsource arkmq-broker-operator-catalog-source --namespace operators -o yaml
+          minikube kubectl -- wait pod -l olm.catalogSource=arkmq-broker-operator-catalog-source --for=condition=Ready --namespace=operators --timeout=3m ||
+          minikube kubectl -- describe pod -l olm.catalogSource=arkmq-broker-operator-catalog-source --namespace=operators
          
       - name: Create and verify subscription
         run: |
           minikube kubectl -- create -f ./examples/catalog/subscription.yaml
-          minikube kubectl -- wait subscription activemq-artemis-operator-subscription --for=jsonpath='{.status.installplan.kind}'=InstallPlan --namespace=operators --timeout=3m ||
-          minikube kubectl -- get subscription activemq-artemis-operator-subscription --namespace=operators -o yaml
-          minikube kubectl -- wait installplan -l operators.coreos.com/activemq-artemis-operator.operators='' --for=condition=Installed --namespace=operators --timeout=3m ||
-          minikube kubectl -- get installplan -l operators.coreos.com/activemq-artemis-operator.operators='' --namespace=operators -o yaml
+          minikube kubectl -- wait subscription arkmq-broker-operator-subscription --for=jsonpath='{.status.installplan.kind}'=InstallPlan --namespace=operators --timeout=3m ||
+          minikube kubectl -- get subscription arkmq-broker-operator-subscription --namespace=operators -o yaml
+          minikube kubectl -- wait installplan -l operators.coreos.com/arkmq-broker-operator.operators='' --for=condition=Installed --namespace=operators --timeout=3m ||
+          minikube kubectl -- get installplan -l operators.coreos.com/arkmq-broker-operator.operators='' --namespace=operators -o yaml
           minikube kubectl -- wait pod -l name=activemq-artemis-operator --for=condition=Ready --namespace=operators --timeout=3m ||
           minikube kubectl -- get pod -l name=activemq-artemis-operator --namespace=operators -o yaml
 
