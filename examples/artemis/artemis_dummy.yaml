@@ -1,0 +1,37 @@
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemis
+metadata:
+  name: artemis-dummy
+spec:
+  env:
+    - name: HELLO_ADDR
+      value: ':8161'
+    - name: HELLO_TEXT
+      value: '{"request":{"mbean":"org.apache.activemq.artemis:broker=\"0.0.0.0\"","attribute":"Status","type":"read"},"value":"{\"configuration\":{\"properties\":{\"broker.properties\":{\"alder32\":\"1\",\"fileAlder32\":\"1285359230\"}}},\"server\":{\"jaas\":{\"properties\":{}},\"state\":\"STARTED\",\"version\":\"2.42.0\",\"nodeId\":\"27d63164-aa5b-11f0-a502-cabd4cd943ed\",\"identity\":null,\"uptime\":\"1 minute\"}}","status":200}'
+  deploymentPlan:
+    readinessProbe:
+      tcpSocket:
+        port: 8161
+  resourceTemplates:
+  - selector:
+      kind: "StatefulSet"
+    patch:
+      kind: "StatefulSet"
+      spec:
+        template:
+          spec:
+            initContainers:
+              - name: artemis-dummy-container-init
+                command:
+                - '/bin/bash'
+                args:
+                -  '-c'
+                -  'echo "Hello World"'
+                image: 'quay.io/brusdev/hello-world-http:latest'
+            containers:
+              - name: artemis-dummy-container
+                command:
+                - '/hello-world-http'
+                args:
+                -  ''
+                image: 'quay.io/brusdev/hello-world-http:latest'

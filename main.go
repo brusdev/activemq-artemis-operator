@@ -19,6 +19,8 @@ package main
 import (
 	"context"
 	"flag"
+	"net/http"
+	_ "net/http/pprof" // Important: underscore import registers the handlers
 	"os"
 	"sort"
 	"strings"
@@ -144,6 +146,13 @@ func main() {
 	setupLog = ctrl.Log.WithName("setup")
 
 	printVersion()
+
+	// Start the pprof server in a separate goroutine
+	go func() {
+		err := http.ListenAndServe("localhost:6060", nil)
+		setupLog.Error(err, "Error starting the pprof server")
+		os.Exit(1)
+	}()
 
 	// Get a config to talk to the apiserver
 	cfg, err := config.GetConfig()
