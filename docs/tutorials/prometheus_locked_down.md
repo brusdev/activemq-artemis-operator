@@ -821,6 +821,7 @@ spec:
     image: quay.io/arkmq-org/activemq-artemis-broker-kubernetes:snapshot
     extraMounts:
       secrets: [artemis-broker-jaas-config-bp, amqps-pem]
+    persistenceEnabled: true
 EOF
 ```
 ```shell markdown_runner
