@@ -267,8 +267,6 @@ func DeployCustomBroker(targetNamespace string, customFunc func(candidate *broke
 	return &brokerCrd, &createdBrokerCrd
 }
 
-<<<<<<< Updated upstream
-=======
 func generateBrokerSpec(namespace string) brokerv1beta2.Broker {
 	return brokerv1beta2.Broker{
 		TypeMeta: metav1.TypeMeta{
@@ -310,7 +308,6 @@ func DeployCustomBrokerV1(targetNamespace string, customFunc func(candidate *bro
 	return &brokerCrd, &createdBrokerCrd
 }
 
->>>>>>> Stashed changes
 func getPersistedVersionedCrd(name string, nameSpace string, object client.Object) bool {
 	key := types.NamespacedName{Name: name, Namespace: nameSpace}
 	if err := k8sClient.Get(ctx, key, object); err == nil {

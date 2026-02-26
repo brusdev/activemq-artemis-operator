@@ -541,7 +541,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) applyPodDisruptionBudget(custom
 		}
 	}
 	desired.Spec = *customResource.Spec.DeploymentPlan.PodDisruptionBudget.DeepCopy()
-	matchLabels := map[string]string{"ActiveMQArtemis": customResource.Name}
+	matchLabels := map[string]string{customResource.Kind: customResource.Name}
 
 	desired.Spec.Selector = &metav1.LabelSelector{
 		MatchLabels: matchLabels,
@@ -757,14 +757,14 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) sourceEnvVarFromSecret(customRe
 		//if operator doesn't own it, don't track
 		if len(secretDefinition.OwnerReferences) > 0 {
 			for _, or := range secretDefinition.OwnerReferences {
-				if or.Kind == "ActiveMQArtemis" && or.Name == customResource.Name {
+				if (or.Kind == "ActiveMQArtemis" || or.Kind == "Broker") && or.Name == customResource.Name {
 					desired = true
 				}
 			}
 		}
 
 		if !desired {
-			log.V(1).Info("The secret " + secretName + " is ignored because its onwer references doesn't include ActiveMQArtemis/" + customResource.Name)
+			log.V(1).Info("The secret " + secretName + " is ignored because its owner references doesn't include " + customResource.Kind + "/" + customResource.Name)
 		}
 	}
 
@@ -865,7 +865,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) processSSLSecret(secretName str
 	//if operator doesn't own it, don't track
 	if len(trackedSecret.OwnerReferences) > 0 {
 		for _, or := range trackedSecret.OwnerReferences {
-			if or.Kind == "ActiveMQArtemis" && or.Name == customResource.Name {
+			if (or.Kind == "ActiveMQArtemis" || or.Kind == "Broker") && or.Name == customResource.Name {
 				reconciler.trackDesired(trackedSecret)
 			}
 		}

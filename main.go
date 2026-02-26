@@ -99,10 +99,7 @@ func init() {
 	utilruntime.Must(brokerv2alpha5.AddToScheme(scheme))
 	utilruntime.Must(brokerv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(brokerv1beta1.AddToScheme(scheme))
-<<<<<<< Updated upstream
-=======
 	utilruntime.Must(brokerv1beta2.AddToScheme(scheme))
->>>>>>> Stashed changes
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -267,6 +264,16 @@ func main() {
 
 	if err = brokerReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ActiveMQArtemis")
+		os.Exit(1)
+	}
+
+	brokerV1Reconciler := controllers.NewBrokerReconciler(
+		mgr,
+		ctrl.Log.WithName("BrokerReconciler"),
+		isOpenshift)
+
+	if err = brokerV1Reconciler.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Broker")
 		os.Exit(1)
 	}
 
