@@ -29,7 +29,6 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -237,86 +236,6 @@ func (r *ActiveMQArtemisReconciler) Reconcile(ctx context.Context, request ctrl.
 	return result, err
 }
 
-func (r *BrokerReconcilerImpl) validate(customResource *v1beta2.Broker, client rtclient.Client, namer common.Namers) (bool, retry bool) {
-	// Do additional validation here
-	validationCondition := metav1.Condition{
-		Type:   v1beta2.ValidConditionType,
-		Status: metav1.ConditionTrue,
-		Reason: v1beta2.ValidConditionSuccessReason,
-	}
-
-	condition, retry := validateExtraMounts(customResource, client)
-	if condition != nil {
-		validationCondition = *condition
-	}
-
-	if validationCondition.Status != metav1.ConditionFalse && customResource.Spec.DeploymentPlan.PodDisruptionBudget != nil {
-		condition := validatePodDisruption(customResource)
-		if condition != nil {
-			validationCondition = *condition
-		}
-	}
-
-	if validationCondition.Status != metav1.ConditionFalse {
-		condition, retry = validateNoDupKeysInBrokerProperties(customResource)
-		if condition != nil {
-			validationCondition = *condition
-		}
-	}
-
-	if validationCondition.Status != metav1.ConditionFalse {
-		condition, retry = r.validateStorage()
-		if condition != nil {
-			validationCondition = *condition
-		}
-	}
-
-	if validationCondition.Status != metav1.ConditionFalse {
-		condition, retry = validateAcceptorPorts(customResource)
-		if condition != nil {
-			validationCondition = *condition
-		}
-	}
-
-	if validationCondition.Status != metav1.ConditionFalse {
-		condition, retry = validateSSLEnabledSecrets(customResource, client, namer)
-		if condition != nil {
-			validationCondition = *condition
-		}
-	}
-
-	if validationCondition.Status != metav1.ConditionFalse {
-		condition := common.ValidateBrokerImageVersion(customResource)
-		if condition != nil {
-			validationCondition = *condition
-		}
-	}
-
-	if validationCondition.Status != metav1.ConditionFalse {
-		condition := validateReservedLabels(customResource)
-		if condition != nil {
-			validationCondition = *condition
-		}
-	}
-
-	if validationCondition.Status != metav1.ConditionFalse {
-		condition, retry = r.validateExposeModes(customResource)
-		if condition != nil {
-			validationCondition = *condition
-		}
-	}
-
-	if validationCondition.Status != metav1.ConditionFalse {
-		condition, retry = r.validateEnvVars(customResource)
-		if condition != nil {
-			validationCondition = *condition
-		}
-	}
-
-	common.SetStatusConditionWithGeneration(customResource, validationCondition)
-
-	return validationCondition.Status != metav1.ConditionFalse, retry
-}
 
 func validateNoDupKeysInBrokerProperties(customResource *v1beta2.Broker) (*metav1.Condition, bool) {
 	if len(customResource.Spec.BrokerProperties) > 0 {
@@ -380,126 +299,8 @@ func validateAcceptorPorts(customResource *v1beta2.Broker) (*metav1.Condition, b
 	return nil, false
 }
 
-func (r *BrokerReconcilerImpl) validateExposeModes(customResource *v1beta2.Broker) (*metav1.Condition, bool) {
 
-	if !r.isOnOpenShift {
-		for _, acceptor := range customResource.Spec.Acceptors {
-			if acceptor.Expose && acceptor.ExposeMode != nil && *acceptor.ExposeMode == v1beta2.ExposeModes.Route {
-				return &metav1.Condition{
-					Type:    v1beta2.ValidConditionType,
-					Status:  metav1.ConditionFalse,
-					Reason:  v1beta2.ValidConditionFailedInvalidExposeMode,
-					Message: fmt.Sprintf(".Spec.Acceptors %q has invalid expose mode route, it is only supported on OpenShift", acceptor.Name),
-				}, false
-			}
-		}
 
-		for _, connector := range customResource.Spec.Connectors {
-			if connector.Expose && connector.ExposeMode != nil && *connector.ExposeMode == v1beta2.ExposeModes.Route {
-				return &metav1.Condition{
-					Type:    v1beta2.ValidConditionType,
-					Status:  metav1.ConditionFalse,
-					Reason:  v1beta2.ValidConditionFailedInvalidExposeMode,
-					Message: fmt.Sprintf(".Spec.Connectors %q has invalid expose mode route, it is only supported on OpenShift", connector.Name),
-				}, false
-			}
-		}
-
-		console := customResource.Spec.Console
-		if console.Expose && console.ExposeMode != nil && *console.ExposeMode == v1beta2.ExposeModes.Route {
-			return &metav1.Condition{
-				Type:    v1beta2.ValidConditionType,
-				Status:  metav1.ConditionFalse,
-				Reason:  v1beta2.ValidConditionFailedInvalidExposeMode,
-				Message: ".Spec.Console has invalid expose mode route, it is only supported on OpenShift",
-			}, false
-		}
-	}
-
-	for _, acceptor := range customResource.Spec.Acceptors {
-		if acceptor.Expose && (acceptor.ExposeMode != nil && *acceptor.ExposeMode == v1beta2.ExposeModes.Ingress || !r.isOnOpenShift) &&
-			customResource.Spec.IngressDomain == "" && acceptor.IngressHost == "" {
-			return &metav1.Condition{
-				Type:    v1beta2.ValidConditionType,
-				Status:  metav1.ConditionFalse,
-				Reason:  v1beta2.ValidConditionFailedInvalidIngressSettings,
-				Message: fmt.Sprintf(".Spec.Acceptors %q has invalid ingress settings, IngressHost unspecified and no Spec.IngressDomain default domain provided", acceptor.Name),
-			}, false
-		}
-	}
-
-	for _, connector := range customResource.Spec.Connectors {
-		if connector.Expose && (connector.ExposeMode != nil && *connector.ExposeMode == v1beta2.ExposeModes.Ingress || !r.isOnOpenShift) &&
-			customResource.Spec.IngressDomain == "" && connector.IngressHost == "" {
-			return &metav1.Condition{
-				Type:    v1beta2.ValidConditionType,
-				Status:  metav1.ConditionFalse,
-				Reason:  v1beta2.ValidConditionFailedInvalidIngressSettings,
-				Message: fmt.Sprintf(".Spec.Connectors %q has invalid ingress settings, IngressHost unspecified and no Spec.IngressDomain default domain provided", connector.Name),
-			}, false
-		}
-	}
-
-	console := customResource.Spec.Console
-	if console.Expose && (console.ExposeMode != nil && *console.ExposeMode == v1beta2.ExposeModes.Ingress || !r.isOnOpenShift) &&
-		customResource.Spec.IngressDomain == "" && console.IngressHost == "" {
-		return &metav1.Condition{
-			Type:    v1beta2.ValidConditionType,
-			Status:  metav1.ConditionFalse,
-			Reason:  v1beta2.ValidConditionFailedInvalidIngressSettings,
-			Message: ".Spec.Console has invalid ingress settings, IngressHost unspecified and no Spec.IngressDomain default domain provided",
-		}, false
-	}
-
-	return nil, false
-}
-
-func (r *BrokerReconcilerImpl) validateEnvVars(customResource *v1beta2.Broker) (*metav1.Condition, bool) {
-
-	internalVarNames := map[string]string{
-		debugArgsEnvVarName:      debugArgsEnvVarName,
-		javaOptsEnvVarName:       javaOptsEnvVarName,
-		javaArgsAppendEnvVarName: javaArgsAppendEnvVarName,
-	}
-
-	invalidVars := []string{}
-
-	for _, envVar := range customResource.Spec.Env {
-		if _, ok := internalVarNames[envVar.Name]; ok {
-			if envVar.ValueFrom != nil {
-				invalidVars = append(invalidVars, envVar.Name)
-			}
-		}
-	}
-
-	if len(invalidVars) > 0 {
-		return &metav1.Condition{
-			Type:    v1beta2.ValidConditionType,
-			Status:  metav1.ConditionFalse,
-			Reason:  v1beta2.ValidConditionInvalidInternalVarUsage,
-			Message: fmt.Sprintf("Don't use valueFrom on env vars that the operator can mutate: %v. Instead use a different var and refernece it in its value field.", invalidVars),
-		}, false
-	}
-	return nil, false
-}
-
-func (r *BrokerReconcilerImpl) validateStorage() (*metav1.Condition, bool) {
-
-	if r.customResource.Spec.DeploymentPlan.PersistenceEnabled {
-		if r.customResource.Spec.DeploymentPlan.Storage.Size != "" {
-			_, err := resource.ParseQuantity(r.customResource.Spec.DeploymentPlan.Storage.Size)
-			if err != nil {
-				return &metav1.Condition{
-					Type:    v1beta2.ValidConditionType,
-					Status:  metav1.ConditionFalse,
-					Reason:  v1beta2.ValidConditionFailureReason,
-					Message: fmt.Sprintf(".Spec.DeploymentPlan.Storage.Size quantity string is invalid, %v", err),
-				}, false
-			}
-		}
-	}
-	return nil, false
-}
 
 func validateSSLEnabledSecrets(customResource *v1beta2.Broker, client rtclient.Client, namer common.Namers) (*metav1.Condition, bool) {
 
