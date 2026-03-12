@@ -3910,7 +3910,7 @@ var _ = Describe("artemis controller", func() {
 			Expect(convertErr).To(BeNil())
 
 			outer := NewActiveMQArtemisReconciler(k8Manager, ctrl.Log, isOpenshift)
-			reconcilerImpl := NewBrokerReconcilerImpl(brokerCR, outer)
+			reconcilerImpl := NewBrokerReconcilerImpl(brokerCR, outer.toBrokerParent())
 
 			defaultConsoleSecretName := crd.Name + "-console-secret"
 			tlsSecret, err := CreateTlsSecret(defaultConsoleSecretName, defaultNamespace, "password", nil)
@@ -4006,7 +4006,7 @@ var _ = Describe("artemis controller", func() {
 			Expect(convertErr).To(BeNil())
 
 			outer := NewActiveMQArtemisReconciler(k8Manager, ctrl.Log, isOpenshift)
-			reconcilerImpl := NewBrokerReconcilerImpl(brokerCR, outer)
+			reconcilerImpl := NewBrokerReconcilerImpl(brokerCR, outer.toBrokerParent())
 
 			namers := MakeNamers(brokerCR)
 			defaultConsoleSecretName := createdCrd.Name + "-console-secret"
@@ -4114,7 +4114,7 @@ var _ = Describe("artemis controller", func() {
 			Expect(convertErr).To(BeNil())
 
 			outer := NewActiveMQArtemisReconciler(k8Manager, ctrl.Log, isOpenshift)
-			reconcilerImpl := NewBrokerReconcilerImpl(brokerCR, outer)
+			reconcilerImpl := NewBrokerReconcilerImpl(brokerCR, outer.toBrokerParent())
 			reconcilerImpl.deployed = make(map[reflect.Type][]client.Object)
 
 			namers := MakeNamers(brokerCR)

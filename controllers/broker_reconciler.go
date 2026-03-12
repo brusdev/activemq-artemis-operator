@@ -130,7 +130,7 @@ type BrokerReconcilerImpl struct {
 	matchedTemplates   map[int]bool
 }
 
-func NewBrokerReconcilerImpl(customResource *v1beta2.Broker, parent *ActiveMQArtemisReconciler) *BrokerReconcilerImpl {
+func NewBrokerReconcilerImpl(customResource *v1beta2.Broker, parent *BrokerReconciler) *BrokerReconcilerImpl {
 	return &BrokerReconcilerImpl{
 		log:                parent.log,
 		customResource:     customResource,
