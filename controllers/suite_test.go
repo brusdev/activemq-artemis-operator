@@ -61,6 +61,7 @@ import (
 
 	brokerv1alpha1 "github.com/arkmq-org/activemq-artemis-operator/api/v1alpha1"
 	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
+	brokerv1beta2 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
 	brokerv2alpha1 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha1"
 	brokerv2alpha2 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha2"
 	brokerv2alpha3 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha3"
@@ -528,10 +529,12 @@ func createControllerManager(disableMetrics bool, watchNamespace string) {
 	Expect(err).ToNot(HaveOccurred())
 
 	brokerReconciler = NewActiveMQArtemisReconciler(k8Manager, ctrl.Log, isOpenshift)
+	err = brokerReconciler.SetupWithManager(k8Manager)
+	Expect(err).ToNot(HaveOccurred(), "failed to create ActiveMQArtemisReconciler")
 
-	if err = brokerReconciler.SetupWithManager(k8Manager); err != nil {
-		ctrl.Log.Error(err, "unable to create controller", "controller", "ActiveMQArtemisReconciler")
-	}
+	brokerV1Reconciler := NewBrokerReconciler(k8Manager, ctrl.Log, isOpenshift)
+	err = brokerV1Reconciler.SetupWithManager(k8Manager)
+	Expect(err).ToNot(HaveOccurred(), "failed to create BrokerReconciler")
 
 	securityReconciler = &ActiveMQArtemisSecurityReconciler{
 		Client:           k8Manager.GetClient(),
@@ -832,6 +835,9 @@ func setUpK8sClient() {
 	Expect(err).NotTo(HaveOccurred())
 
 	err = brokerv1beta1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = brokerv1beta2.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme

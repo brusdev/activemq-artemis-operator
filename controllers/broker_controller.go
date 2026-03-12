@@ -58,7 +58,7 @@ func NewBrokerReconciler(cluster cluster.Cluster, logger logr.Logger, isOpenShif
 }
 
 // toArtemisParent creates a lightweight ActiveMQArtemisReconciler adapter
-// that provides the fields NewActiveMQArtemisReconcilerImpl needs (log,
+// that provides the fields NewBrokerReconcilerImpl needs (log,
 // Scheme, isOnOpenShift) without duplicating any reconciler logic.
 func (r *BrokerReconciler) toArtemisParent() *ActiveMQArtemisReconciler {
 	return &ActiveMQArtemisReconciler{
@@ -98,7 +98,7 @@ func (r *BrokerReconciler) Reconcile(ctx context.Context, request ctrl.Request) 
 	}
 
 	namer := MakeNamers(customResource)
-	reconciler := NewActiveMQArtemisReconcilerImpl(customResource, r.toArtemisParent())
+	reconciler := NewBrokerReconcilerImpl(customResource, r.toArtemisParent())
 
 	var requeueRequest bool = false
 	var valid bool = false

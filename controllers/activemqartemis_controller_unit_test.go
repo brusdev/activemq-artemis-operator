@@ -55,7 +55,7 @@ func TestValidate(t *testing.T) {
 	namer := MakeNamers(cr)
 
 	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
-	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+	ri := NewBrokerReconcilerImpl(cr, r)
 
 	valid, retry := ri.validate(cr, k8sClient, *namer)
 
@@ -83,7 +83,7 @@ func TestValidateBrokerPropsDuplicate(t *testing.T) {
 	namer := MakeNamers(cr)
 
 	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
-	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+	ri := NewBrokerReconcilerImpl(cr, r)
 
 	valid, retry := ri.validate(cr, k8sClient, *namer)
 
@@ -111,7 +111,7 @@ func TestValidateBrokerPropsDuplicateOnFirstEquals(t *testing.T) {
 	namer := MakeNamers(cr)
 
 	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
-	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+	ri := NewBrokerReconcilerImpl(cr, r)
 
 	valid, retry := ri.validate(cr, k8sClient, *namer)
 
@@ -139,7 +139,7 @@ func TestValidateBrokerPropsDuplicateOnFirstEqualsIncorrectButUnrealisticForOurB
 	namer := MakeNamers(cr)
 
 	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
-	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+	ri := NewBrokerReconcilerImpl(cr, r)
 
 	valid, retry := ri.validate(cr, k8sClient, *namer)
 
@@ -172,7 +172,7 @@ func TestStatusPodsCheckCached(t *testing.T) {
 	}
 
 	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
-	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+	ri := NewBrokerReconcilerImpl(cr, r)
 
 	checkOk := func(brokerStatus *brokerStatus, jk *jolokia_client.JkInfo) ArtemisError {
 		return nil
@@ -209,7 +209,7 @@ func TestJolokiaStatusCached(t *testing.T) {
 	}
 
 	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
-	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+	ri := NewBrokerReconcilerImpl(cr, r)
 
 	checkOk := func(brokerStatus *brokerStatus, jk *jolokia_client.JkInfo) ArtemisError {
 		return nil

@@ -163,7 +163,7 @@ func TestMapComparatorForStatefulSet(t *testing.T) {
 		Comparator: compare.SimpleComparator(),
 	}
 
-	reconciler := &ActiveMQArtemisReconcilerImpl{
+	reconciler := &BrokerReconcilerImpl{
 		log:            ctrl.Log.WithName("test"),
 		customResource: nil,
 	}
@@ -202,7 +202,7 @@ func TestMapComparatorForStatefulSet(t *testing.T) {
 
 func TestComparatorMetaAndSpec(t *testing.T) {
 
-	reconciler := &ActiveMQArtemisReconcilerImpl{
+	reconciler := &BrokerReconcilerImpl{
 		log:            ctrl.Log.WithName("test"),
 		customResource: nil,
 	}
@@ -526,7 +526,7 @@ func TestNewPodTemplateSpecForCR_IncludesDebugArgs(t *testing.T) {
 		},
 	}
 
-	reconciler := &ActiveMQArtemisReconcilerImpl{
+	reconciler := &BrokerReconcilerImpl{
 		log:            ctrl.Log.WithName("test"),
 		customResource: cr,
 	}
@@ -565,7 +565,7 @@ func TestProcess_TemplateIncludesLabelsServiceAndSecret(t *testing.T) {
 		},
 	}
 	outer := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log.WithName("TestProcess_TemplateIncludesLabelsServiceAndSecret"), isOpenshift)
-	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
+	reconciler := NewBrokerReconcilerImpl(cr, outer)
 
 	namer := MakeNamers(cr)
 
@@ -642,7 +642,7 @@ func TestProcess_TemplateIncludesLabelsSecretRegexp(t *testing.T) {
 	}
 
 	outer := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log.WithName("TestProcess_TemplateIncludesLabelsServiceAndSecret"), isOpenshift)
-	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
+	reconciler := NewBrokerReconcilerImpl(cr, outer)
 
 	namer := MakeNamers(cr)
 
@@ -694,7 +694,7 @@ func TestProcess_TemplateDuplicateKeyReplacesOk(t *testing.T) {
 	}
 
 	outer := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log.WithName("TestProcess_TemplateDuplicateKeyReplacesOk"), isOpenshift)
-	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
+	reconciler := NewBrokerReconcilerImpl(cr, outer)
 
 	namer := MakeNamers(cr)
 
@@ -724,7 +724,7 @@ func Test_Respect_existing_JAVA_OPTS_properties_def(t *testing.T) {
 	}
 
 	outer := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log.WithName("Test_Respect_existing_JAVA_OPTS_properties_def"), isOpenshift)
-	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
+	reconciler := NewBrokerReconcilerImpl(cr, outer)
 
 	namer := MakeNamers(cr)
 
@@ -801,7 +801,7 @@ func TestProcess_TemplateKeyValue(t *testing.T) {
 	}
 
 	outer := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log.WithName("test"), isOpenshift)
-	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
+	reconciler := NewBrokerReconcilerImpl(cr, outer)
 
 	namer := MakeNamers(cr)
 
@@ -890,7 +890,7 @@ func TestProcess_TemplateCustomAttributeIngress(t *testing.T) {
 	}
 
 	outer := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log.WithName("test"), isOpenshift)
-	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
+	reconciler := NewBrokerReconcilerImpl(cr, outer)
 
 	namer := MakeNamers(cr)
 
@@ -951,7 +951,7 @@ func TestProcess_TemplateCustomAttributeMisSpellingIngress(t *testing.T) {
 	}
 
 	outer := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log.WithName("test"), isOpenshift)
-	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
+	reconciler := NewBrokerReconcilerImpl(cr, outer)
 
 	namer := MakeNamers(cr)
 	newSS, err := reconciler.ProcessStatefulSet(cr, *namer, nil)
@@ -1012,7 +1012,7 @@ func testTemplateCustomAttributeContainerSecurityContext(t *testing.T, withCRNam
 	}
 
 	outer := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log.WithName("test"), isOpenshift)
-	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
+	reconciler := NewBrokerReconcilerImpl(cr, outer)
 
 	namer := MakeNamers(cr)
 
@@ -1065,7 +1065,7 @@ func TestProcess_TemplateCustomAttributePriorityClassName(t *testing.T) {
 	}
 
 	outer := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log.WithName("test"), isOpenshift)
-	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
+	reconciler := NewBrokerReconcilerImpl(cr, outer)
 
 	namer := MakeNamers(cr)
 
@@ -1113,7 +1113,7 @@ func TestNewPodTemplateSpecForCR_AppendsDebugArgs(t *testing.T) {
 	}
 
 	outer := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log.WithName("test"), isOpenshift)
-	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
+	reconciler := NewBrokerReconcilerImpl(cr, outer)
 
 	newSpec, err := reconciler.PodTemplateSpecForCR(cr, common.Namers{}, &appsv1.StatefulSet{}, k8sClient)
 
@@ -1140,7 +1140,7 @@ func TestNewPodTemplateSpecForCR_IncludesImagePullSecret(t *testing.T) {
 		},
 	}
 	outer := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
-	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
+	reconciler := NewBrokerReconcilerImpl(cr, outer)
 
 	newSpec, err := reconciler.PodTemplateSpecForCR(cr, common.Namers{}, &appsv1.StatefulSet{}, k8sClient)
 	assert.NoError(t, err)
@@ -1176,7 +1176,7 @@ func TestNewPodTemplateSpecForCR_IncludesTopologySpreadConstraints(t *testing.T)
 		},
 	}
 	outer := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
-	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
+	reconciler := NewBrokerReconcilerImpl(cr, outer)
 
 	newSpec, err := reconciler.PodTemplateSpecForCR(cr, common.Namers{}, &appsv1.StatefulSet{}, k8sClient)
 	assert.NoError(t, err)
@@ -1203,7 +1203,7 @@ func TestNewPodTemplateSpecForCR_IncludesContainerSecurityContext(t *testing.T) 
 		},
 	}
 
-	reconciler := &ActiveMQArtemisReconcilerImpl{
+	reconciler := &BrokerReconcilerImpl{
 		log:            ctrl.Log.WithName("test"),
 		customResource: cr,
 	}
@@ -1234,7 +1234,7 @@ func TestNewPodTemplateSpecForCR_IncludesExtraVolumes(t *testing.T) {
 		},
 	}
 
-	reconciler := &ActiveMQArtemisReconcilerImpl{
+	reconciler := &BrokerReconcilerImpl{
 		log:            ctrl.Log.WithName("test"),
 		customResource: cr,
 	}
@@ -1290,7 +1290,7 @@ func TestNewPodTemplateSpecForCR_IncludesExtraVolumesWithCustomMount(t *testing.
 		},
 	}
 
-	reconciler := &ActiveMQArtemisReconcilerImpl{
+	reconciler := &BrokerReconcilerImpl{
 		log:            ctrl.Log.WithName("test"),
 		customResource: cr,
 	}
@@ -1344,7 +1344,7 @@ func TestNewPodTemplateSpecForCR_IncludesExtraVolumeClaimTemplates(t *testing.T)
 		},
 	}
 
-	reconciler := &ActiveMQArtemisReconcilerImpl{
+	reconciler := &BrokerReconcilerImpl{
 		log:            ctrl.Log.WithName("test"),
 		customResource: cr,
 	}
@@ -1777,7 +1777,7 @@ func TestEnsureOwnerReferenceAPIVersion_NoOwnerReferences(t *testing.T) {
 	}
 
 	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
-	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+	ri := NewBrokerReconcilerImpl(cr, r)
 
 	result := ri.ensureOwnerReferenceAPIVersion(cr, existing, candidate)
 
@@ -1817,7 +1817,7 @@ func TestEnsureOwnerReferenceAPIVersion_MatchingAPIVersion(t *testing.T) {
 	}
 
 	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
-	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+	ri := NewBrokerReconcilerImpl(cr, r)
 
 	result := ri.ensureOwnerReferenceAPIVersion(cr, existing, candidate)
 
@@ -1857,7 +1857,7 @@ func TestEnsureOwnerReferenceAPIVersion_DifferentAPIVersion(t *testing.T) {
 	}
 
 	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
-	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+	ri := NewBrokerReconcilerImpl(cr, r)
 
 	result := ri.ensureOwnerReferenceAPIVersion(cr, existing, candidate)
 
@@ -1904,7 +1904,7 @@ func TestEnsureOwnerReferenceAPIVersion_MultipleOwnerReferences(t *testing.T) {
 	}
 
 	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
-	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+	ri := NewBrokerReconcilerImpl(cr, r)
 
 	result := ri.ensureOwnerReferenceAPIVersion(cr, existing, candidate)
 
@@ -1946,7 +1946,7 @@ func TestEnsureOwnerReferenceAPIVersion_DifferentBrokerName(t *testing.T) {
 	}
 
 	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
-	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+	ri := NewBrokerReconcilerImpl(cr, r)
 
 	result := ri.ensureOwnerReferenceAPIVersion(cr, existing, candidate)
 
@@ -1994,7 +1994,7 @@ func TestCompareSecret_WithAPIVersionUpdate(t *testing.T) {
 	}
 
 	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
-	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+	ri := NewBrokerReconcilerImpl(cr, r)
 
 	result := ri.CompareSecret(deployed, requested)
 
@@ -2037,7 +2037,7 @@ func TestCompareConfigMap_WithAPIVersionUpdate(t *testing.T) {
 	}
 
 	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
-	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+	ri := NewBrokerReconcilerImpl(cr, r)
 
 	result := ri.CompareConfigMap(deployed, requested)
 
@@ -2092,7 +2092,7 @@ func TestCompareMetaAndSpec_WithAPIVersionUpdate(t *testing.T) {
 	}
 
 	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
-	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+	ri := NewBrokerReconcilerImpl(cr, r)
 
 	result := ri.CompareMetaAndSpec(deployed, requested)
 

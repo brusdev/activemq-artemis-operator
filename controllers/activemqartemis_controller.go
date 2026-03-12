@@ -180,7 +180,7 @@ func (r *ActiveMQArtemisReconciler) Reconcile(ctx context.Context, request ctrl.
 	}
 
 	namer := MakeNamers(customResource)
-	reconciler := NewActiveMQArtemisReconcilerImpl(customResource, r)
+	reconciler := NewBrokerReconcilerImpl(customResource, r)
 
 	var requeueRequest bool = false
 	var valid bool = false
@@ -223,7 +223,7 @@ func (r *ActiveMQArtemisReconciler) Reconcile(ctx context.Context, request ctrl.
 	return result, err
 }
 
-func (r *ActiveMQArtemisReconcilerImpl) validate(customResource *v1beta2.Broker, client rtclient.Client, namer common.Namers) (bool, retry bool) {
+func (r *BrokerReconcilerImpl) validate(customResource *v1beta2.Broker, client rtclient.Client, namer common.Namers) (bool, retry bool) {
 	// Do additional validation here
 	validationCondition := metav1.Condition{
 		Type:   v1beta2.ValidConditionType,
@@ -366,7 +366,7 @@ func validateAcceptorPorts(customResource *v1beta2.Broker) (*metav1.Condition, b
 	return nil, false
 }
 
-func (r *ActiveMQArtemisReconcilerImpl) validateExposeModes(customResource *v1beta2.Broker) (*metav1.Condition, bool) {
+func (r *BrokerReconcilerImpl) validateExposeModes(customResource *v1beta2.Broker) (*metav1.Condition, bool) {
 
 	if !r.isOnOpenShift {
 		for _, acceptor := range customResource.Spec.Acceptors {
@@ -440,7 +440,7 @@ func (r *ActiveMQArtemisReconcilerImpl) validateExposeModes(customResource *v1be
 	return nil, false
 }
 
-func (r *ActiveMQArtemisReconcilerImpl) validateEnvVars(customResource *v1beta2.Broker) (*metav1.Condition, bool) {
+func (r *BrokerReconcilerImpl) validateEnvVars(customResource *v1beta2.Broker) (*metav1.Condition, bool) {
 
 	internalVarNames := map[string]string{
 		debugArgsEnvVarName:      debugArgsEnvVarName,
@@ -469,7 +469,7 @@ func (r *ActiveMQArtemisReconcilerImpl) validateEnvVars(customResource *v1beta2.
 	return nil, false
 }
 
-func (r *ActiveMQArtemisReconcilerImpl) validateStorage() (*metav1.Condition, bool) {
+func (r *BrokerReconcilerImpl) validateStorage() (*metav1.Condition, bool) {
 
 	if r.customResource.Spec.DeploymentPlan.PersistenceEnabled {
 		if r.customResource.Spec.DeploymentPlan.Storage.Size != "" {
