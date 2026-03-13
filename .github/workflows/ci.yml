@@ -172,16 +172,16 @@ jobs:
           npm install && npm run build
 
       - name: Set up QEMU
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ github.event_name == 'schedule' }}
         uses: docker/setup-qemu-action@v4
 
       - name: Build the image for arm64
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ github.event_name == 'schedule' }}
         run: |
           podman build --build-arg TARGETOS=linux --build-arg TARGETARCH=arm64 --label quay.expires-after=90d --label git-sha=$GITHUB_SHA --no-cache --platform linux/arm64 --manifest $IMAGE_NAME:dev.latest .
 
       - name: Push the dev image
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ github.event_name == 'schedule' }}
         run: |
           COMMIT_TAG=dev.$(date +%Y%m%d).$(git rev-parse --short "$GITHUB_SHA")
           podman login --username=${{ secrets.QUAY_USERNAME }} --password=${{ secrets.QUAY_PASSWORD }} quay.io
@@ -189,7 +189,7 @@ jobs:
           podman manifest push $IMAGE_NAME:dev.latest docker://quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME:dev.latest
 
       - name: Push dev-latest helm chart
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ github.event_name == 'schedule' }}
         run: |
           # Create a temporary copy for the dev chart
           cp -r helm-charts/arkmq-org-broker-operator helm-charts/arkmq-org-broker-operator-dev
@@ -207,7 +207,7 @@ jobs:
         run: podman build --file bundle.Dockerfile --label quay.expires-after=90d --label git-sha=$GITHUB_SHA --tag $IMAGE_NAME-bundle:dev.latest .
 
       - name: Push the bundle image
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ github.event_name == 'schedule' }}
         run: |
           COMMIT_TAG=dev.$(date +%Y%m%d).$(git rev-parse --short "$GITHUB_SHA")
           podman login --username=${{ secrets.QUAY_USERNAME }} --password=${{ secrets.QUAY_PASSWORD }} quay.io
