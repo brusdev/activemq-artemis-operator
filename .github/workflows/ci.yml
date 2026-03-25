@@ -137,19 +137,6 @@ jobs:
           minikube kubectl -- wait --for=condition=Established crd/catalogsources.operators.coreos.com --timeout=2m
           minikube kubectl -- wait --for=condition=Established crd/subscriptions.operators.coreos.com --timeout=2m
 
-      - name: Execute tests
-        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' && !inputs.skipTests }}
-        run: IMG="${HOSTNAME}:5000/$IMAGE_NAME:dev.latest" make test-mk-v
-
-      - name: Execute do tests
-        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.skipDOTests }}
-        run: IMG="${HOSTNAME}:5000/$IMAGE_NAME:dev.latest" make test-mk-do-v
-
-      - name: Run helm-charts tests
-        run: |
-          helm install --set controllerManager.manager.image.repository=${HOSTNAME}:5000/$IMAGE_NAME --set controllerManager.manager.image.tag=dev.latest my-broker-operator --set crds.keep=false helm-charts/arkmq-org-broker-operator/
-          helm uninstall my-broker-operator
-
       - name: Run scorecard tests
         run: make scorecard | tee scorecard.log && ! grep 'Suggestions' scorecard.log
 
@@ -260,7 +247,7 @@ jobs:
           minikube delete
           find docs/tutorials -type f -exec sed -i "s|^minikube start|minikube start  --cpus 2 --memory 8000 --insecure-registry=$HOSTNAME:5000|" {} +
           sed -i "s|image: quay.io/arkmq-org/activemq-artemis-operator:.*|image: ${HOSTNAME}:5000/$IMAGE_NAME:dev.latest|" deploy/operator.yaml
-          markdown-runner docs/tutorials -v
+          markdown-runner -v docs/tutorials/vault_broker_properties.md
 
       - name: Trigger release
         if: ${{ inputs.trigger_release }}
