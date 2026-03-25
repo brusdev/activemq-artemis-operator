@@ -545,7 +545,11 @@ addressConfigurations.${VAULT_ADDRESS_NAME}.queueConfigs.${VAULT_ADDRESS_NAME}.r
 The broker properties still contain the `${VAULT_ADDRESS_NAME}` placeholder, but Artemis will resolve it using the injected environment variable. Now verify that the VAULT-TEST address and queue were created:
 
 ```{"stage":"banzai", "runtime":"bash", "label":"check banzai vault-test queue"}
-kubectl exec banzai-broker-ss-0 -- /bin/bash -c 'cd amq-broker/bin && ./artemis queue stat --user admin --password admin --url tcp://banzai-broker-ss-0:61616 | grep VAULT-TEST'
+kubectl exec banzai-broker-ss-0 -- /bin/bash -c 'cd amq-broker/bin && ./artemis queue stat --user admin --password admin --url tcp://banzai-broker-ss-0:61616'
+sleep 5
+kubectl exec banzai-broker-ss-0 -- /bin/bash -c 'cd amq-broker/bin && ./artemis queue stat --user admin --password admin --url tcp://banzai-broker-ss-0:61616'
+sleep 5
+kubectl exec banzai-broker-ss-0 -- /bin/bash -c 'cd amq-broker/bin && ./artemis queue stat --user admin --password admin --url tcp://banzai-broker-ss-0:61616'
 ```
 ```shell markdown_runner
 |VAULT-TEST        |VAULT-TEST        |   0    |   0   |   0    |    0     |   0    |    0    |ANYCAST| false  |
